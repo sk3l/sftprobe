@@ -31,8 +31,8 @@ maxsize; ignoring.".format(size))
                 random.seed()
                 datalen = random.randrange(size, maxsize)
 
-            fname = self.name_ + "_datafile_" + str(i)
-            if len(contents) < 1:
+            fname = self.path_ + "/" + self.name_ + "_datafile_" + str(i+1)
+            if len(contents) > 0:
                 fname += ".txt"
                 fgen.gen_text(fname, contents, datalen)
             else:
@@ -42,6 +42,8 @@ maxsize; ignoring.".format(size))
             self.file_list_.append(fname)
             print("Generated data file '{0}' for sftp account {1}.".format(fname, self.name_))
 
+    def load_data_files(self):
+        i = 0
 
 if __name__ == "__main__":
 
@@ -49,5 +51,5 @@ if __name__ == "__main__":
 
     acct = sftp_account(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
 
-    acct.create_data_files(4, "DE0F", 256, 512)
-    acct.create_data_files(4, "", 1024, 4096)
+    acct.create_data_files(4, "DE0F", 64, 128)
+    acct.create_data_files(4, "", 512, 1024)
