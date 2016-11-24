@@ -7,7 +7,7 @@ class filegen:
     # Write random sequence of bytes to an output file at the specified path.
     def gen_rand(self, fpath, size):
         try:
-            with open(fpath, 'w') as f:
+            with open(fpath, 'wb') as f:
                 randbytes = os.urandom(size)
                 f.write(randbytes)
             print("Successful random file generation at '{0}'.".format(fpath)) 
