@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-import sys
+import json
 import random
+import sys
 
 from filegen import filegen
 
@@ -44,6 +45,16 @@ maxsize; ignoring.".format(size))
 
     def load_data_files(self):
         i = 0
+
+    @classmethod
+    def json_decode(classobj, jsondict):
+        return sftp_account(
+            jsondict["account_name"],
+            jsondict["user_name"],
+            json_dict["password"],
+            json_dict["path"])
+
+
 
 if __name__ == "__main__":
 
