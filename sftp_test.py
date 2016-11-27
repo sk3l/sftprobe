@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import json
 from argparse import ArgumentParser 
 import sys
 
@@ -32,14 +33,13 @@ if __name__ == "__main__":
     if vars(args)["help"] == True or len(sys.argv) < 2:
         ap.print_help()
 
-   
-    accountList = []
+    accountList = [] 
 
-    if (vars(args)["accounts"] == True):
-        with open(vars(args["accounts"]), "r") as acctf:
-           acct = json.load(acctf, object_hook=sftp_account.json_decode)
-           while acct != None:
-               accountList.append(acct)
+    if (vars(args)["accounts"]):
+        with open(vars(args)["accounts"], "r") as acctf:
+           account = json.load(acctf, object_hook=sftp_account.json_decode)
+           while account != None:
+               accountList.append(account)
 
             
 

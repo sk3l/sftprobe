@@ -1,0 +1,9 @@
+{ "Accounts" : [ 
+
+   {
+      "AccountName"  : "TestAccount",
+      "UserName"     : "tester",
+      "Password"     : "abc123",
+      "Path"         : "/home/tester"              
+   }
+]}
