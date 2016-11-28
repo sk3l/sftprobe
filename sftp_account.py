@@ -49,21 +49,17 @@ maxsize; ignoring.".format(size))
     @classmethod
     def json_decode(classobj, jsondict):
        
-        acctList = []
-        #accounts = jsondict["Accounts"];
+        if "AccountName" in jsondict:
+            return sftp_account(
+                jsondict["AccountName"],
+                jsondict["UserName"],
+                jsondict["Password"],
+                jsondict["Path"])
        
         if "Accounts" in jsondict:
-            for account in jsondict["Accounts"]: 
-                acct =sftp_account(
-                    account["AccountName"],
-                    account["UserName"],
-                    account["Password"],
-                    account["Path"])
-        
-            acctList.append(acct)
+            return jsondict["Accounts"]  
 
-        return acctList
-
+        return None
 
 if __name__ == "__main__":
 
