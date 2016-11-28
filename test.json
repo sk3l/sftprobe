@@ -1,10 +1,9 @@
 { "Accounts" : [ 
-
    {
       "AccountName"  : "TestAccount",
-      "UserName"     : "tester",
-      "Password"     : "abc123",
-      "Path"         : "/home/tester"              
+      "UserName"     : "mskelton8",
+      "Password"     : "M1k3Tk1t122016",
+      "FilePath"     : "/home/mskelton8/tmp"
    }
 ]
 }

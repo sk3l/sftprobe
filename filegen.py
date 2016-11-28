@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/opt/bb/bin/python3.5
 
 import os
 
@@ -10,7 +10,7 @@ class filegen:
             with open(fpath, 'wb') as f:
                 randbytes = os.urandom(size)
                 f.write(randbytes)
-            print("Successful random file generation at '{0}'.".format(fpath)) 
+            #print("Successful random file generation at '{0}'.".format(fpath)) 
         except Exception as e:
             print("Exception while outputing random file at '{0}': '{1}'".format(fpath, e))
 
@@ -20,7 +20,7 @@ class filegen:
             with open(fpath, 'w') as f:
                 for i in range(0, cnt): 
                     f.write(txt)
-            print("Successful text file generation at '{0}'.".format(fpath)) 
+            #print("Successful text file generation at '{0}'.".format(fpath)) 
         except Exception as e:
             print("Exception while outputing text file at '{0}': '{1}'".format(fpath, e))
 
