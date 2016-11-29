@@ -16,6 +16,10 @@ if __name__ == "__main__":
         ap = argparse.ArgumentParser(add_help=False)
  
         ap.add_argument(
+            "-s", "--server", required=True,
+            help="Address of server to test against e.g. localhost:22.")
+ 
+        ap.add_argument(
             "-m", "--mode", required=True,
             help="Mode of operation: choices are 'random' or 'scripted'.")
     
@@ -28,7 +32,7 @@ if __name__ == "__main__":
             help="Number of test account files to transfer.")
     
         ap.add_argument(
-            "-s", "--size", type=int,
+            "-i", "--size", type=int,
             help="Size of the transfer input file e.g. 100Kb, 4Mb.")
     
         ap.add_argument(
@@ -59,7 +63,7 @@ if __name__ == "__main__":
 
         args = ap.parse_args()
     
-        if vars(args)["help"] == True:
+        if vars(args)["help"]:
             ap.print_help()
             exit(16)
     
@@ -67,15 +71,15 @@ if __name__ == "__main__":
         accountList = []            # list of SFTP test accounts
  
         # Deserialize the account file
-        with open(vars(args)["accounts"], "r") as acctf:
+        with open(args.accounts, "r") as acctf:
             accountList = json.load(acctf, object_hook=sftp_account.json_decode)
            
             for acct in accountList:
 
                 print("Found account '{0}' in input file.".format(acct))
-                cnt =   vars(args)["count"]     if vars(args)["count"]      else acct.file_cnt_
-                size=   vars(args)["size"]      if vars(args)["size"]       else acct.file_size_
-                maxsize=vars(args)["sizelimit"] if vars(args)["sizelimit"]  else acct.file_size_max_
+                cnt =   args.count     if vars(args)["count"]     else acct.file_cnt_
+                size=   args.size      if vars(args)["size"]      else acct.file_size_
+                maxsize=args.sizelimit if vars(args)["sizelimit"] else acct.file_size_max_
               
                 acct.create_data_files("", cnt, size, maxsize)
                 
@@ -85,21 +89,21 @@ if __name__ == "__main__":
        
         # Use the supplied worker count, or None defaults to <system_cpu_cnt>*5
         threadCnt = None            
-        if "workercnt" in vars(args):
-            threadCnt = vars(args)["workercnt"]
+        if vars(args)["workercnt"]:
+            threadCnt = int(args.workercnt)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=threadCnt) as threadPool:
             producerTarget = None
             producerArgs   = ()
  
-            consumer = sftp_consumer(threadPool)
+            consumer = sftp_consumer(args.server)
             producer = sftp_producer(threadPool, consumer.process_job, accountList)       
 
             # Establish program mode & parameters
-            mode = vars(args)["mode"].lower()
+            mode = args.mode.lower()
             if mode == "random":
                 if vars(args)["numlimit"]:
-                    transLimit = vars(args)["numlimit"]
+                    transLimit = args.numlimit
                 producerTarget = producer.start_random
                 producerArgs = (transLimit,)
         
@@ -109,7 +113,7 @@ if __name__ == "__main__":
                     ap.print_help()
                     exit(16)
                 producerTarget = producer.start_scripted
-                producerArgs = (vars(args)["file"],)
+                producerArgs = (args.file,)
         
             else:
                 print("'{0}' is not a valid run mode.".format(mode))
