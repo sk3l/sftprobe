@@ -21,6 +21,7 @@ class sftp_producer:
         self.thread_cback_  = callback
         self.account_list_  = acctlist
         self.trans_count_   = 0
+        self.future_list_   = []
         self.stop_          = threading.Event()
 
     # Main producer thread method for working through a pre-prepared set of
@@ -57,9 +58,21 @@ class sftp_producer:
                 op = "GET"
 
             # Post the job on the thread pool
-            self.thread_pool_.submit(self.thread_cback_, account, op, fname)
+            self.future_list_.append(
+                self.thread_pool_.submit(self.thread_cback_, account, op, fname))
 
             self.trans_count_ += 1
 
     def stop(self):
         self.stop_.set()
+
+    def wait_for_consumer(self):
+        i = 1
+        for job in self.future_list_:
+            try:
+                job.result()
+                i += 1
+            except Exception as e:
+                print(
+                "Encountered error waiting for job {0} in sftp_producer: {1}".format(
+                i, e))

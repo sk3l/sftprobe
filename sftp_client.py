@@ -8,9 +8,12 @@ from paramiko import SFTPClient
 class sftp_client:
 
     def __init__(self, servaddr, username, password):
-        self.transport_ = Transport(servaddr)
-        self.user_      = username
-        self.pwd_       = password
+        try:
+            self.transport_ = Transport(servaddr)
+            self.user_      = username
+            self.pwd_       = password
+        except Exception as e:
+            print("***Error caught in sftp_client::__init__!***")
 
     def do_listdir(self, path):
         try:

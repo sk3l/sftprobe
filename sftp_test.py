@@ -3,12 +3,34 @@
 import argparse
 import concurrent.futures
 import json
+import re 
 import sys
 import threading
 
 from sftp_account   import sftp_account
 from sftp_consumer  import sftp_consumer
 from sftp_producer  import sftp_producer
+
+def byte_size(fsizestr):
+    fsMatch = re.search('(\d+)\s*([gkm]?b?)', fsizestr, re.I)
+
+    if not fsMatch:
+        return -1
+
+    size = int(fsMatch.group(1))
+    base = fsMatch.group(2).lower()
+
+    if len(base) == 0:
+        return size
+    elif base.startswith("k"):
+        return size * pow(2,10)
+    elif base.startswith("m"):
+        return size * pow(2,20)
+    elif base.startswith("g"):
+        return size * pow(2,30)
+    else:
+        return -1
+
 
 if __name__ == "__main__":
 
@@ -32,11 +54,11 @@ if __name__ == "__main__":
             help="Number of test account files to transfer.")
     
         ap.add_argument(
-            "-i", "--size", type=int,
+            "-i", "--size",
             help="Size of the transfer input file e.g. 100Kb, 4Mb.")
     
         ap.add_argument(
-            "-l", "--sizelimit", type=int,
+            "-l", "--maxsize",
             help="Max size for randomly generated transfer input file e.g. 100Kb, 4Mb.")
     
         ap.add_argument(
@@ -66,7 +88,24 @@ if __name__ == "__main__":
         if vars(args)["help"]:
             ap.print_help()
             exit(16)
-    
+
+        cliSize = 0
+        if vars(args)["size"]:
+            cliSize = byte_size(args.size)
+            if cliSize < 0:
+                print("Bad --size argument.")
+                ap.print_help()
+                exit(16)
+
+        cliMaxSize = 0
+        if vars(args)["maxsize"]:
+            cliMaxSize = byte_size(args.maxsize)
+            if cliMaxSize < 0:
+                print("Bad --maxsize argument.")
+                ap.print_help()
+                exit(16)
+
+
         #workQueue = queue.Queue()   # queue of SFTP tasks
         accountList = []            # list of SFTP test accounts
  
@@ -77,10 +116,19 @@ if __name__ == "__main__":
             for acct in accountList:
 
                 print("Found account '{0}' in input file.".format(acct))
-                cnt =   args.count     if vars(args)["count"]     else acct.file_cnt_
-                size=   args.size      if vars(args)["size"]      else acct.file_size_
-                maxsize=args.sizelimit if vars(args)["sizelimit"] else acct.file_size_max_
-              
+                cnt     = args.count if vars(args)["count"] else acct.file_cnt_
+                size    = cliSize    if cliSize > 0         else byte_size(acct.file_size_)
+                maxsize = cliMaxSize if cliMaxSize > 0      else byte_size(acct.file_size_max_)
+
+                if size < 0:
+                    print("Encountered bad file size paramter in account {0}; skipping.".format(
+                        acct.name_))
+                    continue
+                elif maxsize <0:
+                    print("Encountered bad file maxsize paramter in account {0}; skipping.".format(
+                        acct.name_))
+                    continue
+
                 acct.create_data_files("", cnt, size, maxsize)
                 
                 print("Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
@@ -96,7 +144,7 @@ if __name__ == "__main__":
             producerTarget = None
             producerArgs   = ()
  
-            consumer = sftp_consumer(args.server)
+            consumer = sftp_consumer(threadPool, args.server)
             producer = sftp_producer(threadPool, consumer.process_job, accountList)       
 
             # Establish program mode & parameters
@@ -123,9 +171,12 @@ if __name__ == "__main__":
             prodThread = threading.Thread(target=producerTarget,args=producerArgs)
 
             print("Beginning SFTP test data production.")
+            # Fire up the producer thread to create SFTP jobs
             prodThread.start()
-
             prodThread.join()
+
+            # Wait until all of the SFTP jobs have been processed by the consumer
+            producer.wait_for_consumer()
 
         print("SFTP testing complete.")
 
