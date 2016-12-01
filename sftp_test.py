@@ -115,10 +115,10 @@ if __name__ == "__main__":
            
             for acct in accountList:
 
-                print("Found account '{0}' in input file.".format(acct))
+                print("Found account '{0}' in input file.".format(acct.name_))
                 cnt     = args.count if vars(args)["count"] else acct.file_cnt_
-                size    = cliSize    if cliSize > 0         else byte_size(acct.file_size_)
-                maxsize = cliMaxSize if cliMaxSize > 0      else byte_size(acct.file_size_max_)
+                size    = cliSize    if cliSize > 0         else acct.file_size_
+                maxsize = cliMaxSize if cliMaxSize > 0      else acct.file_size_max_
 
                 if size < 0:
                     print("Encountered bad file size paramter in account {0}; skipping.".format(

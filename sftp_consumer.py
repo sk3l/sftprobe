@@ -1,7 +1,6 @@
 #!/opt/bb/bin/python3.5
 
 import concurrent.futures
-import os
 import threading
 #import pdb
 
@@ -14,7 +13,11 @@ class sftp_consumer:
         self.threadpool_  = threadpool
         self.server_addr_ = serveraddr 
 
-    def process_job(self, account, op, fname):
+    def process_job(self, account, cmd, params):
+        import pdb
+        pdb.set_trace()
+
+        fname = params["LocalPath"]
         if not fname in account.file_locks_:
             raise Exception(
                 "Couldn't locate file lock for {0} in account {1}".format(
@@ -27,35 +30,36 @@ class sftp_consumer:
 
             if not gotLock:
                 # account file is in use, resubmit work to thread pool
-                return self.threadpool_.submit(self.process_job, account, op, fname)
+                return self.threadpool_.submit(self.process_job, account, cmd, fname)
 
             haveLock = True
             
             print(
             "SFTP consumer thread#{3} processing {0} of file '{1}' from account '{2}'".format(
-                op, fname, account.name_,threading.get_ident()))
+                cmd, fname, account.name_,threading.get_ident()))
 
             clientconn = sftp_client(
                 self.server_addr_, account.username_, account.password_)
 
-            (pathstr,filestr) = os.path.split(fname)
-
-            if op.upper() == "PUT":
-                clientconn.do_put(fname, filestr)
+            if cmd.upper() == "PUT":
+                clientconn.do_put(fname, params["RemotePath"])
                 account.file_put_map_[fname] = True
-            elif op.upper() == "GET":
-                clientconn.do_get(filestr, fname)
-            elif op.upper() == "LS":
-                clientconn.do_listdir(fname)
+
+            elif cmd.upper() == "GET":
+                clientconn.do_get(params["RemotePath"], fname)
+            
+            elif cmd.upper() == "LS":
+                clientconn.do_listdir(params["RemotePath"])
+            
             else:
-                print("WARNING : unrecognized op {0} for {1} in {2}.".format(
-                    op, fname, account.name_))
+                print("WARNING : unrecognized cmd {0} for {1} in {2}.".format(
+                    cmd, fname, account.name_))
 
             return 0
         except Exception as err:
             #pdb.set_trace()
             print("Encountered error during {0} of {1} in {2}: '{3}'".format(
-                op, fname, account.name_, err))
+                cmd, fname, account.name_, err))
             return 64
 
         finally:

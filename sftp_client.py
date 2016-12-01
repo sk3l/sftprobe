@@ -1,56 +1,62 @@
 #!/usr/bin/python
 
+import enum
+import logging
 import sys
 
 from paramiko import Transport
 from paramiko import SFTPClient
 
+class sftp_commands(enum.Enum):
+    Unknown = 0
+    List    = 1
+    Put     = 2
+    Get     = 3
+
 class sftp_client:
 
     def __init__(self, servaddr, username, password):
-        try:
-            self.transport_ = Transport(servaddr)
-            self.user_      = username
-            self.pwd_       = password
-        except Exception as e:
-            print("***Error caught in sftp_client::__init__!***")
+        #import paramiko
+        #logger = paramiko.util.logging.getLogger()
+        #logger.propagate = False 
+        
+        self.transport_ = Transport(servaddr)
+        self.user_      = username
+        self.pwd_       = password
 
-    def do_listdir(self, path):
+    def exec_sftp_cmd(self, cmd, args):
         try:
             self.transport_.connect(username=self.user_, password=self.pwd_)
             sftp_sess = SFTPClient.from_transport(self.transport_)
-            return sftp_sess.listdir(path)
+            
+            if cmd == sftp_commands.List:
+                return sftp_sess.listdir(args["Path"])
+            
+            elif cmd == sftp_commands.Get:
+                file_attrs = sftp_sess.get(
+                    args["RemotePath"], args["LocalPath"]) 
+            
+            elif cmd == sftp_commands.Put:
+                file_attrs = sftp_sess.put(
+                    args["LocalPath"], args["RemotePath"]) 
 
         except Exception as e:
             print("Encountered error in sftp_client::do_ls: {0}".format(e))
         finally:
             if self.transport_.is_active():
                 self.transport_.close()
+
+    def do_listdir(self, path):
+        return self.exec_sftp_cmd(self, sftp_commands.List, {"Path":path})
+   
+    def do_get(self, remotepath, localpath):
+        return self.exec_sftp_cmd(self, sftp_commands.Get, 
+                {"RemotePath":remotepath, "LocalPath":localpath})
     
     def do_put(self, localpath, remotepath):
-        try:
-            self.transport_.connect(username=self.user_, password=self.pwd_)
-            sftp_sess = SFTPClient.from_transport(self.transport_)
-            file_attrs = sftp_sess.put(localpath, remotepath) 
+        return self.exec_sftp_cmd(self, sftp_commands.Put, 
+                {"LocalPath":localpath,"RemotePath":remotepath})
 
-        except Exception as e:
-            print("Encountered error in sftp_client::do_put: {0}".format(e))
-        finally:
-            if self.transport_.is_active():
-                self.transport_.close()
- 
-    def do_get(self, remotepath, localpath):
-        try:
-            self.transport_.connect(username=self.user_, password=self.pwd_)
-            sftp_sess = SFTPClient.from_transport(self.transport_)
-            file_attrs = sftp_sess.get(remotepath, localpath) 
-
-        except Exception as e:
-            print("Encountered error in sftp_client::do_get: {0}".format(e))
-        finally:
-            if self.transport_.is_active():
-                self.transport_.close()
- 
 
 if __name__ == "__main__":
     if len(sys.argv) < 5 or len(sys.argv) > 6:
