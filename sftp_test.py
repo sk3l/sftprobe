@@ -3,6 +3,7 @@
 import argparse
 import concurrent.futures
 import json
+import multiprocessing
 import re 
 import sys
 import threading
@@ -135,8 +136,8 @@ if __name__ == "__main__":
                     acct.name_, cnt, size, maxsize))
  
        
-        # Use the supplied worker count, or None defaults to <system_cpu_cnt>*5
-        threadCnt = None            
+        # Use the supplied worker count, or <system_cpu_cnt>
+        threadCnt = multiprocessing.cpu_count() 
         if vars(args)["workercnt"]:
             threadCnt = int(args.workercnt)
 
@@ -176,7 +177,9 @@ if __name__ == "__main__":
             prodThread.join()
 
             # Wait until all of the SFTP jobs have been processed by the consumer
-            producer.wait_for_consumer()
+            while True:
+                if producer.wait_for_consumer():
+                    break
 
         print("SFTP testing complete.")
 

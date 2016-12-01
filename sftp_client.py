@@ -24,39 +24,34 @@ class sftp_client:
         self.user_      = username
         self.pwd_       = password
 
-    def exec_sftp_cmd(self, cmd, args):
+    def exec_sftp_cmd(self, cmd, **kwargs):
         try:
             self.transport_.connect(username=self.user_, password=self.pwd_)
             sftp_sess = SFTPClient.from_transport(self.transport_)
             
             if cmd == sftp_commands.List:
-                return sftp_sess.listdir(args["Path"])
+                return sftp_sess.listdir(kwargs["remotepath"])
             
             elif cmd == sftp_commands.Get:
-                file_attrs = sftp_sess.get(
-                    args["RemotePath"], args["LocalPath"]) 
+                file_attrs = sftp_sess.get(kwargs["remotepath"], kwargs["localpath"]) 
             
             elif cmd == sftp_commands.Put:
-                file_attrs = sftp_sess.put(
-                    args["LocalPath"], args["RemotePath"]) 
+                file_attrs = sftp_sess.put(kwargs["localpath"], kwargs["remotepath"]) 
 
         except Exception as e:
-            print("Encountered error in sftp_client::do_ls: {0}".format(e))
+            print("Encountered error in sftp_client::{1}: {0}".format(e, cmd))
         finally:
             if self.transport_.is_active():
                 self.transport_.close()
 
     def do_listdir(self, path):
-        return self.exec_sftp_cmd(self, sftp_commands.List, {"Path":path})
+        return self.exec_sftp_cmd(sftp_commands.List, remotepath=path)
    
-    def do_get(self, remotepath, localpath):
-        return self.exec_sftp_cmd(self, sftp_commands.Get, 
-                {"RemotePath":remotepath, "LocalPath":localpath})
+    def do_get(self, rpth, lpth):
+        return self.exec_sftp_cmd(sftp_commands.Get, remotepath=rpth, localpath=lpth)
     
-    def do_put(self, localpath, remotepath):
-        return self.exec_sftp_cmd(self, sftp_commands.Put, 
-                {"LocalPath":localpath,"RemotePath":remotepath})
-
+    def do_put(self, lpth, rpth):
+        return self.exec_sftp_cmd(sftp_commands.Put, localpath=lpth, remotepath=rpth)
 
 if __name__ == "__main__":
     if len(sys.argv) < 5 or len(sys.argv) > 6:

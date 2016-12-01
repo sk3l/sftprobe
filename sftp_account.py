@@ -21,7 +21,7 @@ class sftp_account:
         self.file_list_     = []
 
         # Dictionary for tracking which files have been PUT to server
-        self.file_put_map_  = {}
+        # self.file_put_map_  = {}
         
         # Locks to synchronize processing the account's files.
         # Don't want worker threads simultanesouly put/get account's files

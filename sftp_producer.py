@@ -7,6 +7,7 @@ import random
 import threading
 
 from sftp_account import sftp_account
+from sftp_consumer import sftp_result
 
 #class sftp_job:
 #
@@ -91,7 +92,7 @@ class sftp_producer:
                 
                     cmd = "PUT"
                     params = {"LocalPath": fname, "RemotePath": filestr} 
-                    if random.random() > .5 and fname in account.file_put_map_:
+                    if random.random() > .5: #and fname in account.file_put_map_:
                         cmd = "GET"
     
                     # Post the job on the thread pool
@@ -111,12 +112,27 @@ class sftp_producer:
         self.stop_.set()
 
     def wait_for_consumer(self):
+       
+        retry_list = []
         i = 1
         for job in self.future_list_:
             try:
-                job.result()
-                i += 1
+                res = job.result()
+                if not res.complete_:
+                    retry_list.append(res)
             except Exception as e:
                 print(
                 "Encountered error waiting for job {0} in sftp_producer: {1}".format(
                 i, e))
+
+        self.future_list_ = []
+        # Resubmit the retries
+        for res in retry_list:
+            self.future_list_.append(
+                self.thread_pool_.submit(
+                    self.thread_cback_, res.account_, res.command_,res.parameters_))
+
+        if len(self.future_list_) > 0:
+            return False
+        else:
+            return True

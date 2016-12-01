@@ -2,10 +2,16 @@
 
 import concurrent.futures
 import threading
-#import pdb
 
 from sftp_account   import sftp_account
 from sftp_client    import sftp_client
+
+class sftp_result:
+    def __init__(self, account, cmd, params, complete=True):
+        self.account_   = account
+        self.command_   = cmd
+        self.parameters_= params
+        self.complete_  = complete
 
 class sftp_consumer:
     
@@ -14,8 +20,8 @@ class sftp_consumer:
         self.server_addr_ = serveraddr 
 
     def process_job(self, account, cmd, params):
-        import pdb
-        pdb.set_trace()
+        #import pdb
+        #pdb.set_trace()
 
         fname = params["LocalPath"]
         if not fname in account.file_locks_:
@@ -30,7 +36,8 @@ class sftp_consumer:
 
             if not gotLock:
                 # account file is in use, resubmit work to thread pool
-                return self.threadpool_.submit(self.process_job, account, cmd, fname)
+                #print("File {0} busy; try again later.".format(fname))
+                return sftp_result(account, cmd, params, False)
 
             haveLock = True
             
@@ -43,7 +50,7 @@ class sftp_consumer:
 
             if cmd.upper() == "PUT":
                 clientconn.do_put(fname, params["RemotePath"])
-                account.file_put_map_[fname] = True
+                #account.file_put_map_[fname] = True
 
             elif cmd.upper() == "GET":
                 clientconn.do_get(params["RemotePath"], fname)
@@ -55,12 +62,12 @@ class sftp_consumer:
                 print("WARNING : unrecognized cmd {0} for {1} in {2}.".format(
                     cmd, fname, account.name_))
 
-            return 0
+            return sftp_result(account, cmd, params)
         except Exception as err:
             #pdb.set_trace()
             print("Encountered error during {0} of {1} in {2}: '{3}'".format(
                 cmd, fname, account.name_, err))
-            return 64
+            return sftp_result(account, cmd, params, False)
 
         finally:
             if lock and haveLock:
