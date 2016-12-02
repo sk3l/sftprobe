@@ -151,10 +151,16 @@ if __name__ == "__main__":
             # Establish program mode & parameters
             mode = args.mode.lower()
             if mode == "random":
+                transLimit = 0
                 if vars(args)["numlimit"]:
                     transLimit = args.numlimit
+                
+                timelimit = 0
+                if vars(args)["timelimit"]:
+                    timelimit = args.timelimit
+
                 producerTarget = producer.start_random
-                producerArgs = (transLimit,)
+                producerArgs = (transLimit,timelimit,)
         
             elif mode == "scripted":
                 if not vars(args)["file"]:
@@ -181,7 +187,11 @@ if __name__ == "__main__":
                 if producer.wait_for_consumer():
                     break
 
-        print("SFTP testing complete.")
+        print("\nSFTP testing complete.")
+        print("\tResults:")
+        print("\t========")
+        print("\tNumber of source SFTP operations:    {0}".format(producer.trans_count_))
+        #print("\tNumber of processed SFTP operations: {0}".format(consumer.trans_count_))
 
     except Exception as e:
         print("Encountered exception: {0}".format(e))

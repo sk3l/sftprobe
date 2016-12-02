@@ -20,8 +20,6 @@ class sftp_consumer:
         self.server_addr_ = serveraddr 
 
     def process_job(self, account, cmd, params):
-        #import pdb
-        #pdb.set_trace()
 
         fname = params["LocalPath"]
         if not fname in account.file_locks_:

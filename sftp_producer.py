@@ -4,6 +4,7 @@ import concurrent.futures
 import json
 import os
 import random
+import time
 import threading
 
 from sftp_account import sftp_account
@@ -62,7 +63,7 @@ class sftp_producer:
                     self.thread_pool_.submit(self.thread_cback_, account, cmd, params))
                 
 
-            self.trans_count_ += 1
+                self.trans_count_ += 1
         except Exception as e:
             print(
             "Encountered an error in start_scripted thread: {0}".format(
@@ -71,12 +72,27 @@ class sftp_producer:
 
     # Main producer thread method for creating a set of randomized SFTP file
     # operations from among the specified account list
-    def start_random(self, translimit):
+    def start_random(self, translimit, timelimit):
         try:
             random.seed()
-            while self.trans_count_ < translimit:
+
+            stoptime = 0
+            if timelimit > 0:
+                stoptime = time.time() + timelimit
+
+            while True:
 
                 if self.stop_.isSet():
+                    break
+
+                if translimit > 0 and self.trans_count_ >= translimit:
+                    print("Terminating SFTP random production (trans limit reached)")
+                    break
+
+                if stoptime > 0 and time.time() >= stoptime:
+                    print("Terminating SFTP random production (time limit reached)")
+                    self.cancel()
+                    self.future_list_.clear()
                     break
                
                 # Select a random account, file and cmd 
@@ -111,6 +127,10 @@ class sftp_producer:
     def stop(self):
         self.stop_.set()
 
+    def cancel(self):
+        for job in self.future_list_:
+            job.cancel()
+
     def wait_for_consumer(self):
        
         retry_list = []
@@ -125,7 +145,7 @@ class sftp_producer:
                 "Encountered error waiting for job {0} in sftp_producer: {1}".format(
                 i, e))
 
-        self.future_list_ = []
+        self.future_list_.clear()
         # Resubmit the retries
         for res in retry_list:
             self.future_list_.append(
