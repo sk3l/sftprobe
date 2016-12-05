@@ -190,8 +190,10 @@ if __name__ == "__main__":
         print("\nSFTP testing complete.")
         print("\tResults:")
         print("\t========")
-        print("\tNumber of source SFTP operations:    {0}".format(producer.trans_count_))
-        #print("\tNumber of processed SFTP operations: {0}".format(consumer.trans_count_))
+        print("\tNumber of SFTP operations sourced:    {0}".format(producer.trans_count_))
+        print("\tNumber of SFTP operations completed:  {0}".format(producer.complete_count_))
+        if producer.cancel_count_ > 0:
+            print("\tNumber of SFTP operations canceled:   {0}".format(producer.cancel_count_))
 
     except Exception as e:
         print("Encountered exception: {0}".format(e))

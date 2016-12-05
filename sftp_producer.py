@@ -24,6 +24,8 @@ class sftp_producer:
         self.thread_cback_  = callback
         self.account_list_  = acctlist
         self.trans_count_   = 0
+        self.complete_count_= 0 
+        self.cancel_count_  = 0
         self.future_list_   = []
         self.stop_          = threading.Event()
 
@@ -92,7 +94,6 @@ class sftp_producer:
                 if stoptime > 0 and time.time() >= stoptime:
                     print("Terminating SFTP random production (time limit reached)")
                     self.cancel()
-                    self.future_list_.clear()
                     break
                
                 # Select a random account, file and cmd 
@@ -107,9 +108,9 @@ class sftp_producer:
                     (pathstr,filestr) = os.path.split(fname)
                 
                     cmd = "PUT"
-                    params = {"LocalPath": fname, "RemotePath": filestr} 
-                    if random.random() > .5: #and fname in account.file_put_map_:
-                        cmd = "GET"
+                    params = {"LocalPath": fname, "RemotePath": filestr, "SerialNo" : self.trans_count_} 
+                    #if random.random() > .5: #and fname in account.file_put_map_:
+                    #    cmd = "GET"
     
                     # Post the job on the thread pool
                     self.future_list_.append(
@@ -128,8 +129,11 @@ class sftp_producer:
         self.stop_.set()
 
     def cancel(self):
+        print("DEBUG => len(future_list) in sftp_producer::cancel() = {0}".format(len(self.future_list_)))
         for job in self.future_list_:
-            job.cancel()
+            if not job.running() and not job.done():
+                job.cancel()
+                self.cancel_count_ += 1
 
     def wait_for_consumer(self):
        
@@ -137,13 +141,20 @@ class sftp_producer:
         i = 1
         for job in self.future_list_:
             try:
+                if job.cancelled():
+                    continue
+
                 res = job.result()
                 if not res.complete_:
                     retry_list.append(res)
+                else:
+                    self.complete_count_ += 1
             except Exception as e:
                 print(
                 "Encountered error waiting for job {0} in sftp_producer: {1}".format(
                 i, e))
+            finally:
+                i += 1
 
         self.future_list_.clear()
         # Resubmit the retries

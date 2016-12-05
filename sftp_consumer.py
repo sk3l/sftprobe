@@ -40,14 +40,14 @@ class sftp_consumer:
             haveLock = True
             
             print(
-            "SFTP consumer thread#{3} processing {0} of file '{1}' from account '{2}'".format(
-                cmd, fname, account.name_,threading.get_ident()))
+            "SFTP consumer thread#{3} processing {0} of file '{1}' from account '{2} (serial# {4})'".format(
+                cmd, fname, account.name_,threading.get_ident(),params["SerialNo"]))
 
             clientconn = sftp_client(
                 self.server_addr_, account.username_, account.password_)
 
             if cmd.upper() == "PUT":
-                clientconn.do_put(fname, params["RemotePath"])
+                clientconn.do_put(fname, params["RemotePath"] + "_" + str(params["SerialNo"]))
                 #account.file_put_map_[fname] = True
 
             elif cmd.upper() == "GET":
