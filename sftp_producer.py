@@ -2,6 +2,7 @@
 
 import concurrent.futures
 import json
+import logging
 import os
 import random
 import time
@@ -19,6 +20,7 @@ from sftp_consumer import sftp_result
 
 class sftp_producer:
 
+    logger =  logging.getLogger('sftp_test.producer')
     def __init__(self, threadpool, callback, acctlist):
         self.thread_pool_   = threadpool 
         self.thread_cback_  = callback
@@ -28,7 +30,6 @@ class sftp_producer:
         self.cancel_count_  = 0
         self.future_list_   = []
         self.stop_          = threading.Event()
-
         # keep the accounts hashed by name
         self.account_map_   = {}
         for account in self.account_list_:
@@ -44,14 +45,14 @@ class sftp_producer:
             workScript = None
             with open(scriptloc, "r") as scriptf:
                 workScript = json.load(scriptf)
-    
+
             for job in workScript["Jobs"]:
                 if self.stop_.isSet():
                     break
                 
                 if not job["Account"] in self.account_map_:
-                    print(
-                    "WARNING: encountered unknown account {0} in work script.".format(
+                    sftp_producer.logger.warn(
+                    "encountered unknown account {0} in work script.".format(
                         job["Account"]))
                     continue
                 account     = self.account_map_[job["Account"]]
@@ -67,9 +68,8 @@ class sftp_producer:
 
                 self.trans_count_ += 1
         except Exception as e:
-            print(
-            "Encountered an error in start_scripted thread: {0}".format(
-            e))
+            msg = "Encountered an error in start_scripted thread: {0}".format(e)
+            sftp_producer.logger.error(msg)
             return 64
 
     # Main producer thread method for creating a set of randomized SFTP file
@@ -88,11 +88,11 @@ class sftp_producer:
                     break
 
                 if translimit > 0 and self.trans_count_ >= translimit:
-                    print("Terminating SFTP random production (trans limit reached)")
+                    sftp_producer.logger.info("Terminating SFTP random production (trans limit reached)")
                     break
 
                 if stoptime > 0 and time.time() >= stoptime:
-                    print("Terminating SFTP random production (time limit reached)")
+                    sftp_producer.logger.info("Terminating SFTP random production (time limit reached)")
                     self.cancel()
                     break
                
@@ -119,9 +119,8 @@ class sftp_producer:
     
                 self.trans_count_ += 1
         except Exception as e:
-            print(
-            "Encountered error in start_random thread: {0}".format(
-                e))
+            msg = "Encountered error in start_random thread: {0}".format(e)
+            sftp_producer.logger.error(msg)
             return 64
 
 
@@ -129,7 +128,10 @@ class sftp_producer:
         self.stop_.set()
 
     def cancel(self):
-        print("DEBUG => len(future_list) in sftp_producer::cancel() = {0}".format(len(self.future_list_)))
+        sftp_producer.logger.debug(
+        "Result length in sftp_producer::cancel() = {0}".format(
+        len(self.future_list_)))
+
         for job in self.future_list_:
             if not job.running() and not job.done():
                 job.cancel()
@@ -150,7 +152,7 @@ class sftp_producer:
                 else:
                     self.complete_count_ += 1
             except Exception as e:
-                print(
+                sftp_producer.logger.error(
                 "Encountered error waiting for job {0} in sftp_producer: {1}".format(
                 i, e))
             finally:

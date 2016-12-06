@@ -1,6 +1,7 @@
 #!/opt/bb/bin/python3.5
 
 import concurrent.futures
+import logging
 import threading
 
 from sftp_account   import sftp_account
@@ -15,6 +16,7 @@ class sftp_result:
 
 class sftp_consumer:
     
+    logger =  logging.getLogger('sftp_test.consumer')
     def __init__(self, threadpool, serveraddr):
         self.threadpool_  = threadpool
         self.server_addr_ = serveraddr 
@@ -33,15 +35,13 @@ class sftp_consumer:
             gotLock = lock.acquire(blocking=False)
 
             if not gotLock:
-                # account file is in use, resubmit work to thread pool
-                #print("File {0} busy; try again later.".format(fname))
                 return sftp_result(account, cmd, params, False)
 
             haveLock = True
             
-            print(
-            "SFTP consumer thread#{3} processing {0} of file '{1}' from account '{2} (serial# {4})'".format(
-                cmd, fname, account.name_,threading.get_ident(),params["SerialNo"]))
+            sftp_consumer.logger.debug(
+            "SFTP consumer {3} processing {0} of file '{1}' from account '{2} (serial# {4})'".format(
+                cmd, fname, account.name_,threading.current_thread().name,params["SerialNo"]))
 
             clientconn = sftp_client(
                 self.server_addr_, account.username_, account.password_)
@@ -57,13 +57,13 @@ class sftp_consumer:
                 clientconn.do_listdir(params["RemotePath"])
             
             else:
-                print("WARNING : unrecognized cmd {0} for {1} in {2}.".format(
+                lgger.warn("unrecognized cmd {0} for {1} in {2}.".format(
                     cmd, fname, account.name_))
 
             return sftp_result(account, cmd, params)
         except Exception as err:
             #pdb.set_trace()
-            print("Encountered error during {0} of {1} in {2}: '{3}'".format(
+            sftp_consumer.logger.error("Encountered error during {0} of {1} in {2}: '{3}'".format(
                 cmd, fname, account.name_, err))
             return sftp_result(account, cmd, params, False)
 

@@ -1,6 +1,7 @@
 #!/opt/bb/bin/python3.5
 
 import json
+import logging
 import random
 import sys
 import threading
@@ -9,6 +10,7 @@ from filegen import filegen
 
 class sftp_account:
 
+    logger =  logging.getLogger('sftp_test.account')
     def __init__(self, name,  user, pswd, path, cnt=1, size=1*pow(2,20), maxsize=0):
         self.name_          = name
         self.username_      = user
@@ -46,7 +48,8 @@ class sftp_account:
         datalen = fsize 
 
         if fmaxsize > 0 and fmaxsize < fsize:
-            print("sftp_account::create_files invoked with trivial maxsize.")
+            sftp_account.logger.warn(
+            "sftp_account::create_files invoked with trivial maxsize.")
             fmaxsize = 0
 
         fgen = filegen()

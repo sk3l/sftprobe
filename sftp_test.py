@@ -3,9 +3,11 @@
 import argparse
 import concurrent.futures
 import json
+import logging
 import multiprocessing
 import re 
 import sys
+import time
 import threading
 
 from sftp_account   import sftp_account
@@ -32,10 +34,13 @@ def byte_size(fsizestr):
     else:
         return -1
 
+log_mod = "sftp_test"
 
 if __name__ == "__main__":
 
+    logger = None
     try:
+
         ap = argparse.ArgumentParser(add_help=False)
  
         ap.add_argument(
@@ -77,7 +82,11 @@ if __name__ == "__main__":
         ap.add_argument(
             "-w", "--workercnt",
             help="Number of workers in the thread pool (defaults to machine CPU core count)")
-    
+
+        ap.add_argument(
+            "-v", "--verbosity",
+            help="Verbosity level for native Python Logging framework (default=DEBUG)")
+
         ap.add_argument("-h", "--help", action='store_true')
    
         if len(sys.argv) < 2:
@@ -90,11 +99,32 @@ if __name__ == "__main__":
             ap.print_help()
             exit(16)
 
+        logger = logging.getLogger(log_mod)
+
+        verbosity = "DEBUG"
+        if vars(args)["verbosity"]:
+            verbosity = args.verbosity
+
+        logger.setLevel(verbosity)
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+
+        consHandler = logging.StreamHandler()
+        consHandler.setLevel(verbosity)
+        consHandler.setFormatter(formatter)
+        logger.addHandler(consHandler)
+
+        fileHandler = logging.FileHandler(
+                        time.strftime("sftp_test_log_%H_%M_%m_%d_%Y.txt"))
+        fileHandler.setLevel(verbosity)
+        fileHandler.setFormatter(formatter)
+        logger.addHandler(fileHandler)
+
         cliSize = 0
         if vars(args)["size"]:
             cliSize = byte_size(args.size)
             if cliSize < 0:
-                print("Bad --size argument.")
+                logger.critical("Bad --size argument.")
                 ap.print_help()
                 exit(16)
 
@@ -102,7 +132,7 @@ if __name__ == "__main__":
         if vars(args)["maxsize"]:
             cliMaxSize = byte_size(args.maxsize)
             if cliMaxSize < 0:
-                print("Bad --maxsize argument.")
+                logger.critical("Bad --maxsize argument.")
                 ap.print_help()
                 exit(16)
 
@@ -116,23 +146,24 @@ if __name__ == "__main__":
            
             for acct in accountList:
 
-                print("Found account '{0}' in input file.".format(acct.name_))
+                logger.info("Found account '{0}' in input file.".format(acct.name_))
+
                 cnt     = args.count if vars(args)["count"] else acct.file_cnt_
                 size    = cliSize    if cliSize > 0         else acct.file_size_
                 maxsize = cliMaxSize if cliMaxSize > 0      else acct.file_size_max_
 
                 if size < 0:
-                    print("Encountered bad file size paramter in account {0}; skipping.".format(
+                    logger.warn("Encountered bad file size paramter in account {0}; skipping.".format(
                         acct.name_))
                     continue
                 elif maxsize <0:
-                    print("Encountered bad file maxsize paramter in account {0}; skipping.".format(
+                    logger.warn("Encountered bad file maxsize paramter in account {0}; skipping.".format(
                         acct.name_))
                     continue
 
                 acct.create_data_files("", cnt, size, maxsize)
                 
-                print("Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
+                logger.info("Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
                     acct.name_, cnt, size, maxsize))
  
        
@@ -164,20 +195,20 @@ if __name__ == "__main__":
         
             elif mode == "scripted":
                 if not vars(args)["file"]:
-                    print("Must provide a script file for --file mode.")
+                    logger.critical("Must provide a script file for --file mode.")
                     ap.print_help()
                     exit(16)
                 producerTarget = producer.start_scripted
                 producerArgs = (args.file,)
         
             else:
-                print("'{0}' is not a valid run mode.".format(mode))
+                logger.critical("'{0}' is not a valid run mode.".format(mode))
                 ap.print_help()
                 exit(16)
  
             prodThread = threading.Thread(target=producerTarget,args=producerArgs)
 
-            print("Beginning SFTP test data production.")
+            logger.info("Beginning SFTP test data production.")
             # Fire up the producer thread to create SFTP jobs
             prodThread.start()
             prodThread.join()
@@ -187,15 +218,19 @@ if __name__ == "__main__":
                 if producer.wait_for_consumer():
                     break
 
-        print("\nSFTP testing complete.")
-        print("\tResults:")
-        print("\t========")
-        print("\tNumber of SFTP operations sourced:    {0}".format(producer.trans_count_))
-        print("\tNumber of SFTP operations completed:  {0}".format(producer.complete_count_))
+        logger.info("\nSFTP testing complete.")
+        logger.info("\tResults:")
+        logger.info("\t========")
+        logger.info("\tNumber of SFTP operations sourced:    {0}".format(producer.trans_count_))
+        logger.info("\tNumber of SFTP operations completed:  {0}".format(producer.complete_count_))
         if producer.cancel_count_ > 0:
-            print("\tNumber of SFTP operations canceled:   {0}".format(producer.cancel_count_))
+            logger.info("\tNumber of SFTP operations canceled:   {0}".format(producer.cancel_count_))
 
     except Exception as e:
-        print("Encountered exception: {0}".format(e))
+        msg = "Encountered exception: {0}".format(e)
+        if logger:
+            logger.critical(msg)
+        else:
+            print(msg)
         exit(32)
 

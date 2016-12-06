@@ -15,10 +15,8 @@ class sftp_commands(enum.Enum):
 
 class sftp_client:
 
+    logger =  logging.getLogger('sftp_test.client')
     def __init__(self, servaddr, username, password):
-        #import paramiko
-        #logger = paramiko.util.logging.getLogger()
-        #logger.propagate = False 
         
         self.transport_ = Transport(servaddr)
         self.user_      = username
@@ -39,7 +37,8 @@ class sftp_client:
                 file_attrs = sftp_sess.put(kwargs["localpath"], kwargs["remotepath"]) 
 
         except Exception as e:
-            print("Encountered error in sftp_client::{1}: {0}".format(e, cmd))
+            sftp_client.logger.error(
+            "Encountered error in sftp_client::{1}: {0}".format(e, cmd))
         finally:
             if self.transport_.is_active():
                 self.transport_.close()

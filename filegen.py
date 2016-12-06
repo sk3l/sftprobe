@@ -1,18 +1,22 @@
 #!/opt/bb/bin/python3.5
 
+import logging
 import os
 
 class filegen:
        
+    logger =  logging.getLogger('sftp_test.filegen')
+
     # Write random sequence of bytes to an output file at the specified path.
     def gen_rand(self, fpath, size):
         try:
             with open(fpath, 'wb') as f:
                 randbytes = os.urandom(size)
                 f.write(randbytes)
-            #print("Successful random file generation at '{0}'.".format(fpath)) 
         except Exception as e:
-            print("Exception while outputing random file at '{0}': '{1}'".format(fpath, e))
+            filegen.logger.error(
+            "Exception while outputing random file at '{0}': '{1}'".format(
+            fpath, e))
 
     # Write a predictable sequence of text to an output file at the specified path.
     def gen_text(self, fpath, txt, cnt=1):
@@ -20,9 +24,9 @@ class filegen:
             with open(fpath, 'w') as f:
                 for i in range(0, cnt): 
                     f.write(txt)
-            #print("Successful text file generation at '{0}'.".format(fpath)) 
         except Exception as e:
-            print("Exception while outputing text file at '{0}': '{1}'".format(fpath, e))
+            filegen.logger.error(
+            "Exception while outputing text file at '{0}': '{1}'".format(fpath, e))
 
 if __name__ == "__main__":
     fg = filegen()
