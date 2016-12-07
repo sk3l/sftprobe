@@ -223,6 +223,8 @@ if __name__ == "__main__":
         logger.info("\t========")
         logger.info("\tNumber of SFTP operations sourced:    {0}".format(producer.trans_count_))
         logger.info("\tNumber of SFTP operations completed:  {0}".format(producer.complete_count_))
+        if producer.error_count_ > 0:
+            logger.info("\tNumber of SFTP operations failed:     {0}".format(producer.error_count_))
         if producer.cancel_count_ > 0:
             logger.info("\tNumber of SFTP operations canceled:   {0}".format(producer.cancel_count_))
 

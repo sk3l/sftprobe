@@ -1,18 +1,25 @@
 #!/opt/bb/bin/python3.5
 
 import concurrent.futures
+import enum
 import logging
 import threading
 
 from sftp_account   import sftp_account
 from sftp_client    import sftp_client
 
+class sftp_status(enum.Enum):
+    Unknown = -1
+    Success = 0
+    Blocked = 1
+    Error   = 2
+
 class sftp_result:
-    def __init__(self, account, cmd, params, complete=True):
+    def __init__(self, account, cmd, params, status=sftp_status.Unknown):
         self.account_   = account
         self.command_   = cmd
         self.parameters_= params
-        self.complete_  = complete
+        self.status_    = status
 
 class sftp_consumer:
     
@@ -35,7 +42,7 @@ class sftp_consumer:
             gotLock = lock.acquire(blocking=False)
 
             if not gotLock:
-                return sftp_result(account, cmd, params, False)
+                return sftp_result(account, cmd, params, sftp_status.Blocked)
 
             haveLock = True
             
@@ -60,12 +67,12 @@ class sftp_consumer:
                 lgger.warn("unrecognized cmd {0} for {1} in {2}.".format(
                     cmd, fname, account.name_))
 
-            return sftp_result(account, cmd, params)
+            return sftp_result(account, cmd, params, sftp_status.Success)
         except Exception as err:
             #pdb.set_trace()
             sftp_consumer.logger.error("Encountered error during {0} of {1} in {2}: '{3}'".format(
                 cmd, fname, account.name_, err))
-            return sftp_result(account, cmd, params, False)
+            return sftp_result(account, cmd, params, sftp_status.Error)
 
         finally:
             if lock and haveLock:

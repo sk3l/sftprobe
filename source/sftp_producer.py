@@ -10,6 +10,7 @@ import threading
 
 from sftp_account import sftp_account
 from sftp_consumer import sftp_result
+from sftp_consumer import sftp_status
 
 #class sftp_job:
 #
@@ -28,6 +29,7 @@ class sftp_producer:
         self.trans_count_   = 0
         self.complete_count_= 0 
         self.cancel_count_  = 0
+        self.error_count_   = 0
         self.future_list_   = []
         self.stop_          = threading.Event()
         # keep the accounts hashed by name
@@ -147,10 +149,17 @@ class sftp_producer:
                     continue
 
                 res = job.result()
-                if not res.complete_:
+                if res.status_ == sftp_status.Blocked:
                     retry_list.append(res)
-                else:
+                elif res.status_ == sftp_status.Error:
+                    self.error_count_ += 1
+                elif res.status_ == sftp_status.Success:
                     self.complete_count_ += 1
+                else:
+                    sftp_producer.logger.warn(
+                    "Unknown SFTP result for account={0}, cmd={1}, params={2}".format(
+                        res.account_, res.command_, res.parameters_))
+
             except Exception as e:
                 sftp_producer.logger.error(
                 "Encountered error waiting for job {0} in sftp_producer: {1}".format(

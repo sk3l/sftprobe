@@ -36,9 +36,9 @@ class sftp_client:
             elif cmd == sftp_commands.Put:
                 file_attrs = sftp_sess.put(kwargs["localpath"], kwargs["remotepath"]) 
 
-        except Exception as e:
-            sftp_client.logger.error(
-            "Encountered error in sftp_client::{1}: {0}".format(e, cmd))
+        #except Exception as e:
+        #    sftp_client.logger.error(
+        #    "Encountered error in sftp_client::{1}: {0}".format(e, cmd))
         finally:
             if self.transport_.is_active():
                 self.transport_.close()
