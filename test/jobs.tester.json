@@ -1,0 +1,46 @@
+{ "Jobs" : [
+
+   {
+      "Account" : {
+         "AccountName"  : "TestAccount",
+         "UserName"     : "tester",
+         "Password"     : "abc123",
+         "FilePath"     : "./"
+      },
+      "Operation" : {
+         "Command"      : "LS",
+         "Parameters"   : {}
+      }
+   },
+   {
+      "Account" : {
+         "AccountName"  : "TestAccount",
+         "UserName"     : "tester",
+         "Password"     : "abc123",
+         "FilePath"     : "./"
+      },
+      "Operation" : {
+         "Command"      : "PUT",
+         "Parameters"   : {
+            "LocalPath" : "./test_file.txt",
+            "RemotePath": "test_file_up.txt"
+         }
+      }
+   }, 
+   {
+      "Account" : {
+         "AccountName"  : "TestAccount",
+         "UserName"     : "tester",
+         "Password"     : "abc123",
+         "FilePath"     : "/home/mskelton/tmp"
+      },
+      "Operation" : {
+         "Command"      : "GET",
+         "Parameters"   : {
+            "LocalPath" : "./test_file_down.txt",
+            "RemotePath": "test_file_up.txt"
+         }
+      }
+   } 
+]
+}
