@@ -1,6 +1,5 @@
 #!/opt/bb/bin/python3.5
 
-import concurrent.futures
 import json
 import logging
 import os
@@ -9,37 +8,21 @@ import time
 import threading
 
 from sftp_account import sftp_account
-from sftp_consumer import sftp_result
-from sftp_consumer import sftp_status
-
-#class sftp_job:
-#
-#    def __init__(self, account, op, fname):
-#        self.account_   = account
-#        self.operation_ = op
-#        self.file_name_ = fname
 
 class sftp_producer:
 
     logger =  logging.getLogger('sftp_test.producer')
-    def __init__(self, threadpool, callback, acctlist):
-        self.thread_pool_   = threadpool 
-        self.thread_cback_  = callback
-        self.account_list_  = acctlist
+    def __init__(self):
         self.trans_count_   = 0
-        self.complete_count_= 0 
-        self.cancel_count_  = 0
-        self.error_count_   = 0
-        self.future_list_   = []
         self.stop_          = threading.Event()
         # keep the accounts hashed by name
-        self.account_map_   = {}
-        for account in self.account_list_:
-            self.account_map_[account.name_] = account
+        #self.account_map_   = {}
+        #for account in self.account_list_:
+        #    self.account_map_[account.name_] = account
 
     # Main producer thread method for working through a pre-prepared set of
     # SFTP file operations from among the specified account list
-    def start_scripted(self, scriptloc):
+    def start_scripted(self, scriptloc, enqueuefunc):
 
         # Perform SFTP tranfers, working off of the input script,
         # of until a count/time limit has been reached
@@ -52,21 +35,19 @@ class sftp_producer:
                 if self.stop_.isSet():
                     break
                 
-                if not job["Account"] in self.account_map_:
-                    sftp_producer.logger.warn(
-                    "encountered unknown account {0} in work script.".format(
-                        job["Account"]))
-                    continue
-                account     = self.account_map_[job["Account"]]
+                #if not job["Account"] in self.account_map_:
+                #    sftp_producer.logger.warn(
+                #    "encountered unknown account {0} in work script.".format(
+                #        job["Account"]))
+                #    continue
+                #account     = self.account_map_[job["Account"]]
     
                 operation   = job["Operation"]
                 cmd         = operation["Command"]
                 params      = operation["Parameters"]
  
-                # Post the job on the thread pool
-                self.future_list_.append(
-                    self.thread_pool_.submit(self.thread_cback_, account, cmd, params))
-                
+                # Post the job on the work queue
+                enqueuefunc(account, cmd, params)
 
                 self.trans_count_ += 1
         except Exception as e:
@@ -76,7 +57,7 @@ class sftp_producer:
 
     # Main producer thread method for creating a set of randomized SFTP file
     # operations from among the specified account list
-    def start_random(self, translimit, timelimit):
+    def start_random(self, acctlist, translimit, timelimit, enqueuefunc):
         try:
             random.seed()
 
@@ -90,17 +71,18 @@ class sftp_producer:
                     break
 
                 if translimit > 0 and self.trans_count_ >= translimit:
-                    sftp_producer.logger.info("Terminating SFTP random production (trans limit reached)")
+                    sftp_producer.logger.info(
+                    "Terminating SFTP random production (trans limit reached)")
                     break
 
                 if stoptime > 0 and time.time() >= stoptime:
-                    sftp_producer.logger.info("Terminating SFTP random production (time limit reached)")
-                    self.cancel()
+                    sftp_producer.logger.info(
+                    "Terminating SFTP random production (time limit reached)")
                     break
                
                 # Select a random account, file and cmd 
-                i = random.randrange(0, len(self.account_list_))
-                account = self.account_list_[i]
+                i = random.randrange(0, len(acctlist))
+                account = acctlist[i]
                 
                 i = random.randrange(0, len(account.file_list_))
                 fname = account.file_list_[i]
@@ -114,11 +96,9 @@ class sftp_producer:
                     #if random.random() > .5: #and fname in account.file_put_map_:
                     #    cmd = "GET"
     
-                    # Post the job on the thread pool
-                    self.future_list_.append(
-                        self.thread_pool_.submit(
-                            self.thread_cback_, account, cmd, params))
-    
+                    # Post the job on the work queue
+                    enqueuefunc(account, cmd, params)
+   
                 self.trans_count_ += 1
         except Exception as e:
             msg = "Encountered error in start_random thread: {0}".format(e)
@@ -128,53 +108,3 @@ class sftp_producer:
 
     def stop(self):
         self.stop_.set()
-
-    def cancel(self):
-        sftp_producer.logger.debug(
-        "Result length in sftp_producer::cancel() = {0}".format(
-        len(self.future_list_)))
-
-        for job in self.future_list_:
-            if not job.running() and not job.done():
-                job.cancel()
-                self.cancel_count_ += 1
-
-    def wait_for_consumer(self):
-       
-        retry_list = []
-        i = 1
-        for job in self.future_list_:
-            try:
-                if job.cancelled():
-                    continue
-
-                res = job.result()
-                if res.status_ == sftp_status.Blocked:
-                    retry_list.append(res)
-                elif res.status_ == sftp_status.Error:
-                    self.error_count_ += 1
-                elif res.status_ == sftp_status.Success:
-                    self.complete_count_ += 1
-                else:
-                    sftp_producer.logger.warn(
-                    "Unknown SFTP result for account={0}, cmd={1}, params={2}".format(
-                        res.account_, res.command_, res.parameters_))
-
-            except Exception as e:
-                sftp_producer.logger.error(
-                "Encountered error waiting for job {0} in sftp_producer: {1}".format(
-                i, e))
-            finally:
-                i += 1
-
-        self.future_list_.clear()
-        # Resubmit the retries
-        for res in retry_list:
-            self.future_list_.append(
-                self.thread_pool_.submit(
-                    self.thread_cback_, res.account_, res.command_,res.parameters_))
-
-        if len(self.future_list_) > 0:
-            return False
-        else:
-            return True

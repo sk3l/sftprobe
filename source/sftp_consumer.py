@@ -24,8 +24,7 @@ class sftp_result:
 class sftp_consumer:
     
     logger =  logging.getLogger('sftp_test.consumer')
-    def __init__(self, threadpool, serveraddr):
-        self.threadpool_  = threadpool
+    def __init__(self, serveraddr):
         self.server_addr_ = serveraddr 
 
     def process_job(self, account, cmd, params):

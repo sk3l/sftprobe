@@ -1,18 +1,17 @@
 #!/opt/bb/bin/python3.5
 
 import argparse
-import concurrent.futures
 import json
 import logging
 import multiprocessing
 import re 
 import sys
 import time
-import threading
 
-from sftp_account   import sftp_account
-from sftp_consumer  import sftp_consumer
-from sftp_producer  import sftp_producer
+from sftp_account       import sftp_account
+from sftp_consumer      import sftp_consumer
+from sftp_producer      import sftp_producer
+from sftp_supervisor    import sftp_supervisor 
 
 def byte_size(fsizestr):
     fsMatch = re.search('(\d+)\s*([gkm]?b?)', fsizestr, re.I)
@@ -52,7 +51,7 @@ if __name__ == "__main__":
             help="Mode of operation: choices are 'random' or 'scripted'.")
     
         ap.add_argument(
-            "-a", "--accounts", required=True,
+            "-a", "--accounts",# required=True,
             help="FQN of account input JSON file")
   
         ap.add_argument(
@@ -120,113 +119,125 @@ if __name__ == "__main__":
         fileHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
 
-        cliSize = 0
-        if vars(args)["size"]:
-            cliSize = byte_size(args.size)
-            if cliSize < 0:
-                logger.critical("Bad --size argument.")
+        # Establish program mode & parameters
+        mode = args.mode.lower()
+
+        # Create the sftp job producer 
+        producer = sftp_producer() 
+               
+        prodFunc = None # producer func to create jobs
+        prodArgs   = [] # producer args for job creation 
+ 
+        # Create the sftp job consumer 
+        consumer = sftp_consumer(args.server)
+        consFunc = consumer.process_job
+
+
+        # Determine which job production method to use based on program args
+
+        # #####################################################################
+        # Randomly generate the SFTP jobs
+        if mode == "random":
+            transLimit = 0
+            if vars(args)["numlimit"]:
+                transLimit = args.numlimit
+            
+            timelimit = 0
+            if vars(args)["timelimit"]:
+                timelimit = args.timelimit
+
+            cliSize = 0
+            if vars(args)["size"]:
+                cliSize = byte_size(args.size)
+                if cliSize < 0:
+                    logger.critical("Bad --size argument.")
+                    ap.print_help()
+                    exit(16)
+    
+            cliMaxSize = 0
+            if vars(args)["maxsize"]:
+                cliMaxSize = byte_size(args.maxsize)
+                if cliMaxSize < 0:
+                    logger.critical("Bad --maxsize argument.")
+                    ap.print_help()
+                    exit(16)
+    
+            accountList = []
+     
+            # Deserialize the account file
+            with open(args.accounts, "r") as acctf:
+                accountList = json.load(acctf, object_hook=sftp_account.json_decode)
+               
+                for acct in accountList:
+    
+                    logger.info("Found account '{0}' in input file.".format(acct.name_))
+    
+                    cnt     = args.count if vars(args)["count"] else acct.file_cnt_
+                    size    = cliSize    if cliSize > 0         else acct.file_size_
+                    maxsize = cliMaxSize if cliMaxSize > 0      else acct.file_size_max_
+    
+                    if size < 0:
+                        logger.warn(
+                        "Encountered bad file size paramter in account {0}; skipping.".format(
+                            acct.name_))
+                        continue
+                    elif maxsize <0:
+                        logger.warn(
+                        "Encountered bad file maxsize paramter in account {0}; skipping.".format(
+                            acct.name_))
+                        continue
+    
+                    acct.create_data_files("", cnt, size, maxsize)
+                    
+                    logger.info(
+                    "Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
+                        acct.name_, cnt, size, maxsize))
+ 
+            prodFunc = producer.start_random
+            prodArgs = [accountList,transLimit,timelimit]
+  
+        # #####################################################################
+        # Generate the SFTP jobs from a predefined script
+        elif mode == "scripted":
+            if not vars(args)["file"]:
+                logger.critical("Must provide a script file for --file mode.")
                 ap.print_help()
                 exit(16)
 
-        cliMaxSize = 0
-        if vars(args)["maxsize"]:
-            cliMaxSize = byte_size(args.maxsize)
-            if cliMaxSize < 0:
-                logger.critical("Bad --maxsize argument.")
-                ap.print_help()
-                exit(16)
-
-
-        #workQueue = queue.Queue()   # queue of SFTP tasks
-        accountList = []            # list of SFTP test accounts
- 
-        # Deserialize the account file
-        with open(args.accounts, "r") as acctf:
-            accountList = json.load(acctf, object_hook=sftp_account.json_decode)
-           
-            for acct in accountList:
-
-                logger.info("Found account '{0}' in input file.".format(acct.name_))
-
-                cnt     = args.count if vars(args)["count"] else acct.file_cnt_
-                size    = cliSize    if cliSize > 0         else acct.file_size_
-                maxsize = cliMaxSize if cliMaxSize > 0      else acct.file_size_max_
-
-                if size < 0:
-                    logger.warn("Encountered bad file size paramter in account {0}; skipping.".format(
-                        acct.name_))
-                    continue
-                elif maxsize <0:
-                    logger.warn("Encountered bad file maxsize paramter in account {0}; skipping.".format(
-                        acct.name_))
-                    continue
-
-                acct.create_data_files("", cnt, size, maxsize)
-                
-                logger.info("Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
-                    acct.name_, cnt, size, maxsize))
- 
-       
+            prodFunc = producer.start_scripted
+            prodArgs = [args.file]
+    
+        else:
+            logger.critical("'{0}' is not a valid run mode.".format(mode))
+            ap.print_help()
+            exit(16)
+         
         # Use the supplied worker count, or <system_cpu_cnt>
         threadCnt = multiprocessing.cpu_count() 
         if vars(args)["workercnt"]:
             threadCnt = int(args.workercnt)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=threadCnt) as threadPool:
-            producerTarget = None
-            producerArgs   = ()
- 
-            consumer = sftp_consumer(threadPool, args.server)
-            producer = sftp_producer(threadPool, consumer.process_job, accountList)       
+        # #####################################################################
+        # Supervise creation & execution of the SFTP jobs 
+        with sftp_supervisor(threadCnt, prodFunc, prodArgs, consFunc) as svsr:
 
-            # Establish program mode & parameters
-            mode = args.mode.lower()
-            if mode == "random":
-                transLimit = 0
-                if vars(args)["numlimit"]:
-                    transLimit = args.numlimit
-                
-                timelimit = 0
-                if vars(args)["timelimit"]:
-                    timelimit = args.timelimit
+            svsr.process_jobs()
 
-                producerTarget = producer.start_random
-                producerArgs = (transLimit,timelimit,)
-        
-            elif mode == "scripted":
-                if not vars(args)["file"]:
-                    logger.critical("Must provide a script file for --file mode.")
-                    ap.print_help()
-                    exit(16)
-                producerTarget = producer.start_scripted
-                producerArgs = (args.file,)
-        
-            else:
-                logger.critical("'{0}' is not a valid run mode.".format(mode))
-                ap.print_help()
-                exit(16)
- 
-            prodThread = threading.Thread(target=producerTarget,args=producerArgs)
+            logger.info("Finished processing SFTP jobs.")
+            logger.info("\tResults:")
+            logger.info("\t========")
+            logger.info("\tNumber of SFTP operations sourced:    {0}".format(
+                producer.trans_count_))
+            logger.info("\tNumber of SFTP operations completed:  {0}".format(
+                svsr.complete_count_))
+            if svsr.error_count_ > 0:
+                logger.info("\tNumber of SFTP operations failed:     {0}".format(
+                    svsr.error_count_))
+            if svsr.cancel_count_ > 0:
+                logger.info("\tNumber of SFTP operations canceled:   {0}".format(
+                    svsr.cancel_count_))
 
-            logger.info("Beginning SFTP test data production.")
-            # Fire up the producer thread to create SFTP jobs
-            prodThread.start()
-            prodThread.join()
-
-            # Wait until all of the SFTP jobs have been processed by the consumer
-            while True:
-                if producer.wait_for_consumer():
-                    break
-
-        logger.info("\nSFTP testing complete.")
-        logger.info("\tResults:")
-        logger.info("\t========")
-        logger.info("\tNumber of SFTP operations sourced:    {0}".format(producer.trans_count_))
-        logger.info("\tNumber of SFTP operations completed:  {0}".format(producer.complete_count_))
-        if producer.error_count_ > 0:
-            logger.info("\tNumber of SFTP operations failed:     {0}".format(producer.error_count_))
-        if producer.cancel_count_ > 0:
-            logger.info("\tNumber of SFTP operations canceled:   {0}".format(producer.cancel_count_))
+        logger.info("SFTP testing complete.")
 
     except Exception as e:
         msg = "Encountered exception: {0}".format(e)
