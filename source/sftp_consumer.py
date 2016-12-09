@@ -30,21 +30,9 @@ class sftp_consumer:
     def process_job(self, account, cmd, params):
 
         fname = params["LocalPath"]
-        if not fname in account.file_locks_:
-            raise Exception(
-                "Couldn't locate file lock for {0} in account {1}".format(
-                    fname, account.name_))
 
-        haveLock = False
-        lock = account.file_locks_[fname]
         try:
-            gotLock = lock.acquire(blocking=False)
-
-            if not gotLock:
-                return sftp_result(account, cmd, params, sftp_status.Blocked)
-
-            haveLock = True
-            
+           
             sftp_consumer.logger.debug(
             "SFTP consumer {3} processing {0} of file '{1}' from account '{2} (serial# {4})'".format(
                 cmd, fname, account.name_,threading.current_thread().name,params["SerialNo"]))
@@ -68,12 +56,7 @@ class sftp_consumer:
 
             return sftp_result(account, cmd, params, sftp_status.Success)
         except Exception as err:
-            #pdb.set_trace()
             sftp_consumer.logger.error("Encountered error during {0} of {1} in {2}: '{3}'".format(
                 cmd, fname, account.name_, err))
             return sftp_result(account, cmd, params, sftp_status.Error)
 
-        finally:
-            if lock and haveLock:
-                lock.release()
-                lock = None

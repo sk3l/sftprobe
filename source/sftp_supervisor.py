@@ -35,9 +35,14 @@ class sftp_supervisor:
 
     def process_jobs(self):
 
+        returnvals = {}
+
         self.producer_args_.append(self.add_a_job)
+        self.producer_args_.append(returnvals)
+
         pthread = threading.Thread(
-                    target=self.producer_func_,args=self.producer_args_)
+                    target=self.producer_func_,
+                    args=self.producer_args_)
 
         # Fire up the producer thread to create SFTP jobs
         sftp_supervisor.logger.info("Beginning SFTP test data production.")
@@ -47,11 +52,15 @@ class sftp_supervisor:
         # Wait until all of the SFTP jobs have been processed by the consumer
         sftp_supervisor.logger.info("Waiting for jobs to complete.")
 
+        doCancel = False
+        if "timeout" in returnvals and returnvals["timeout"]:
+            doCancel = True
+
         while True:
-            if self.wait_for_jobs():
+            if self.wait_for_jobs(doCancel):
                 break
 
-    def wait_for_jobs(self):
+    def wait_for_jobs(self, doCancel=False):
         sftp_supervisor.logger.debug(
         "Results length in sftp_supervisor::wait_for_jobs: {0}".format(
             len(self.future_list_)))
@@ -60,8 +69,9 @@ class sftp_supervisor:
         i = 1
         for job in self.future_list_:
             try:
-                #if job.cancelled():
-                #    continue
+                if doCancel and not job.done() and job.cancel():
+                    self.cancel_count_ += 1
+                    continue
 
                 res = job.result()
                 if res.status_ == sftp_status.Blocked:

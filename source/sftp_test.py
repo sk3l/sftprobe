@@ -194,7 +194,8 @@ if __name__ == "__main__":
                         acct.name_, cnt, size, maxsize))
  
             prodFunc = producer.start_random
-            prodArgs = [accountList,transLimit,timelimit]
+            # !!! Throttle param hard coded to 100 for now !!!
+            prodArgs = [accountList,transLimit,timelimit,100]
   
         # #####################################################################
         # Generate the SFTP jobs from a predefined script

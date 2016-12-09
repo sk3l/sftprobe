@@ -4,7 +4,6 @@ import json
 import logging
 import random
 import sys
-import threading
 
 from paramiko.rsakey    import RSAKey
 from paramiko.dsskey    import DSSKey
@@ -36,11 +35,6 @@ class sftp_account:
 
         # Dictionary for tracking which files have been PUT to server
         # self.file_put_map_  = {}
-        
-        # Locks to synchronize processing the account's files.
-        # Don't want worker threads simultanesouly put/get account's files
-        self.file_locks_    = {}
-
 
     def create_data_files(self, contents="", cnt=0, size=0, maxsize=0):
         
@@ -71,7 +65,7 @@ class sftp_account:
                 random.seed()
                 datalen = random.randrange(fsize, fmaxsize)
 
-            fname = self.file_path_ + "/" + self.name_ + "_datafile_" + str(i+1)
+            fname = self.file_path_ + "/" + self.username_ + "_datafile_" + str(i+1)
             if len(contents) > 0:
                 fname += ".txt"
                 fgen.gen_text(fname, contents, datalen)
@@ -80,7 +74,6 @@ class sftp_account:
                 fgen.gen_rand(fname, datalen)
             
             self.file_list_.append(fname)
-            self.file_locks_[fname] = threading.Lock()
 
     def load_data_files(self):
         i = 0

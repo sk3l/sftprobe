@@ -9,7 +9,9 @@
       },
       "Operation" : {
          "Command"      : "LS",
-         "Parameters"   : {}
+         "Parameters"   : {
+            "RemotePath": "./"
+         }
       }
    },
    {

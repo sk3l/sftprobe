@@ -6,7 +6,7 @@ MODE=random
 ACCT=./accounts.tester.json
 FILECNT=100
 WORKERS=14
-TIME=60
+TIME=30
 LOGLVL=INFO
 
 # teardown from previous tests
@@ -34,3 +34,5 @@ if ls ./sftp_test_log* > /dev/null 2>&1; then
 fi
 cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
 
+sudo cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
+sudo chown mskelton8:mskelton8 logs/sftp.log*
