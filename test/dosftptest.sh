@@ -12,7 +12,15 @@ LOGLVL=INFO
 # teardown from previous tests
 echo "Cleaning up from previou tests"
 sudo truncate -s 0 /var/log/sftp.log
-sudo rm -f ~tester/Test*
+
+if [ -e ~tester ]; then
+   sudo rm -f ~tester/Test*
+fi
+
+if [ -e ~tester2 ]; then
+   sudo rm -f ~tester2/Test*
+fi
+
 rm -f ~/tmp/*
 
 echo "Running sftp test app"
@@ -20,7 +28,7 @@ $APP -s $SERVER -m $MODE -a $ACCT -c $FILECNT -t $TIME -w $WORKERS -v $LOGLVL > 
 
 # cleanup
 echo "Back up test logs"
-if [ -e ./sftp_test_log* ]; then
+if ls ./sftp_test_log* > /dev/null 2>&1; then
    cat ./sftp_test_log*
    mv ./sftp_test_log* ./logs
 fi

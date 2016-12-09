@@ -16,15 +16,22 @@ class sftp_commands(enum.Enum):
 class sftp_client:
 
     logger =  logging.getLogger('sftp_test.client')
-    def __init__(self, servaddr, username, password):
+    def __init__(self, servaddr, username="", password="", key=None):
         
         self.transport_ = Transport(servaddr)
+        self.key_       = key
         self.user_      = username
         self.pwd_       = password
 
     def exec_sftp_cmd(self, cmd, **kwargs):
         try:
-            self.transport_.connect(username=self.user_, password=self.pwd_)
+            if self.key_:               # Try private key, if available
+                self.transport_.connect(username=self.user_, pkey=self.key_)
+            elif len(self.pwd_) > 0:    # Next, try password, if available
+                self.transport_.connect(username=self.user_, password=self.pwd_)
+            else:                       # Try just the user name
+                self.transport_.connect(username=self.user_)
+
             sftp_sess = SFTPClient.from_transport(self.transport_)
             
             if cmd == sftp_commands.List:

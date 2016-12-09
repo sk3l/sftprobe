@@ -1,9 +1,19 @@
 { "Accounts" : [ 
    {
-      "AccountName"  : "TestAccount",
+      "AccountName"  : "Test Account",
       "UserName"     : "tester",
       "Password"     : "abc123",
       "FilePath"     : "/home/mskelton/tmp"
+   },
+   {
+      "AccountName"  : "Test Account #2",
+      "UserName"     : "tester2",
+      "Key"          : {
+         "Type"      : "RSA",
+         "Location"  : "keys/tester2" 
+      },
+      "FilePath"     : "/home/mskelton/tmp"
    }
+
 ]
 }

@@ -50,7 +50,7 @@ class sftp_consumer:
                 cmd, fname, account.name_,threading.current_thread().name,params["SerialNo"]))
 
             clientconn = sftp_client(
-                self.server_addr_, account.username_, account.password_)
+                self.server_addr_, account.username_, account.password_, account.key_)
 
             if cmd.upper() == "PUT":
                 clientconn.do_put(fname, params["RemotePath"] + "_" + str(params["SerialNo"]))

@@ -6,15 +6,27 @@ import random
 import sys
 import threading
 
-from filegen import filegen
+from paramiko.rsakey    import RSAKey
+from paramiko.dsskey    import DSSKey
+from filegen            import filegen
 
 class sftp_account:
 
     logger =  logging.getLogger('sftp_test.account')
-    def __init__(self, name,  user, pswd, path, cnt=1, size=1*pow(2,20), maxsize=0):
+    def __init__(self,
+            name,               # Descriptive account name
+            user="",            # System user name
+            pswd="",            # System user password
+            key=None,           # System user private key (paramiko obj)
+            path="",            # Path to the account's files
+            cnt=1,              # Number of files
+            size=1*pow(2,20),   # Min file size
+            maxsize=0):         # Max file size
+
         self.name_          = name
         self.username_      = user
         self.password_      = pswd
+        self.key_           = key
         # Parameters influencing data file generation
         self.file_path_     = path
         self.file_cnt_      = cnt 
@@ -73,33 +85,75 @@ class sftp_account:
     def load_data_files(self):
         i = 0
 
+    # Given a pkey type and file location, open the file and create a Paramiko
+    # private key with the specified algo type
+    @classmethod
+    def load_pkey(clasobj, keytype, location):
+        kt = keytype.upper()
+        if kt == "RSA":
+           return RSAKey.from_private_key_file(location)
+
+        elif kt == "DSA":
+            return DSSKey.from_private_key_file(location)
+
+        else:
+            raise Exception(
+                "Unknown key type '{0}' in sftp_account::load_pkey".format(
+                    keytype))
+
+    # Given a dict, create an sftp_account obj from the dict keys.
+    @classmethod
+    def from_json_dict(classobj, jdict):
+        uname = ""
+        if "UserName" in jdict:
+            uname = jdict["UserName"]
+        passwd = ""
+        if "Password" in jdict:
+            passwd = jdict["Password"]
+        path = ""
+        if "FilePath" in jdict:
+            path = jdict["FilePath"]
+        fcnt = 1
+        if "FileCount" in jdict:
+            fcnt = jdict["FileCount"]
+        fsize = 1*pow(2,20)
+        if "FileSize" in jdict:
+            fsize = jdict["FileSize"]
+        fmax = 0
+        if "FileMaxSize" in jdict:
+            fmax = jdict["FileMaxSize"]
+        key = None
+        if "Key" in jdict:
+            key = jdict["Key"]
+
+        return sftp_account(
+            jdict["AccountName"],
+            uname,
+            passwd,
+            key,
+            path,
+            fcnt,
+            fsize,
+            fmax)
+
+    # This is the 'object_hook' callback method used by json.load() for
+    # deserialization of sftp_account from JSON file
     @classmethod
     def json_decode(classobj, jsondict):
+
+        if "Location" in jsondict:
+            return  sftp_account.load_pkey(
+                        jsondict["Type"],
+                        jsondict["Location"])
        
         if "AccountName" in jsondict:
-            fcnt = 1
-            if "FileCount" in jsondict:
-                fcnt = jsondict["FileCount"]
-            fsize = 1*pow(2,20)
-            if "FileSize" in jsondict:
-                fsize = jsondict["FileSize"]
-            fmax = 0
-            if "FileMaxSize" in jsondict:
-                fmax = jsondict["FileMaxSize"]
-            
-            return sftp_account(
-                jsondict["AccountName"],
-                jsondict["UserName"],
-                jsondict["Password"],
-                jsondict["FilePath"],
-                fcnt,
-                fsize,
-                fmax)
-       
+            return sftp_account.from_json_dict(jsondict)
+
         if "Accounts" in jsondict:
-            return jsondict["Accounts"]  
+            return jsondict["Accounts"]
 
         return None
+
 
 if __name__ == "__main__":
 
