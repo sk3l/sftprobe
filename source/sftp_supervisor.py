@@ -49,28 +49,29 @@ class sftp_supervisor:
         pthread.start()
         pthread.join()
 
+        if "timeout" in returnvals and returnvals["timeout"]:
+            sftp_supervisor.logger.info("Cancelling pending jobs.")
+            self.cancel()
+
         # Wait until all of the SFTP jobs have been processed by the consumer
         sftp_supervisor.logger.info("Waiting for jobs to complete.")
+        self.wait_for_jobs()
 
-        doCancel = False
-        if "timeout" in returnvals and returnvals["timeout"]:
-            doCancel = True
+    def cancel(self):
+        for job in self.future_list_:
+            if not job.running() and not job.done():
+                job.cancel()
+                self.cancel_count_ += 1
 
-        while True:
-            if self.wait_for_jobs(doCancel):
-                break
-
-    def wait_for_jobs(self, doCancel=False):
+    def wait_for_jobs(self):
         sftp_supervisor.logger.debug(
         "Results length in sftp_supervisor::wait_for_jobs: {0}".format(
             len(self.future_list_)))
 
-        retry_list = []
         i = 1
         for job in self.future_list_:
             try:
-                if doCancel and not job.done() and job.cancel():
-                    self.cancel_count_ += 1
+                if job.cancelled():
                     continue
 
                 res = job.result()
@@ -91,21 +92,4 @@ class sftp_supervisor:
                 i, e))
             finally:
                 i += 1
-
-        self.future_list_.clear()
-        
-        # Resubmit any retries
-        if len(retry_list) > 0:
-            sftp_supervisor.logger.info(
-            "Retrying {0} jobs for execution.".format(len(retry_list)))
-            
-            for res in retry_list:
-                self.future_list_.append(
-                    self.thread_pool_.submit(
-                        self.consumer_func_, res.account_, res.command_,res.parameters_))
-
-        if len(self.future_list_) > 0:
-            return False
-        else:
-            return True
 
