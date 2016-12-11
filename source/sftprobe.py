@@ -1,6 +1,5 @@
 #!/opt/bb/bin/python3.5
 
-import argparse
 import json
 import logging
 import multiprocessing
@@ -8,6 +7,7 @@ import re
 import sys
 import time
 
+from sftp_argparse      import sftp_argparse
 from sftp_account       import sftp_account
 from sftp_consumer      import sftp_consumer
 from sftp_producer      import sftp_producer
@@ -39,65 +39,10 @@ if __name__ == "__main__":
 
     logger = None
     try:
-
-        ap = argparse.ArgumentParser(add_help=False)
- 
-        ap.add_argument(
-            "-s", "--server", required=True,
-            help="Address of server to test against e.g. localhost:22.")
- 
-        ap.add_argument(
-            "-m", "--mode", required=True,
-            help="Mode of operation: choices are 'random' or 'scripted'.")
-    
-        ap.add_argument(
-            "-a", "--accounts",# required=True,
-            help="FQN of account input JSON file")
-  
-        ap.add_argument(
-            "-c", "--count", type=int,
-            help="Number of test account files to transfer.")
-    
-        ap.add_argument(
-            "-i", "--size",
-            help="Size of the transfer input file e.g. 100Kb, 4Mb.")
-    
-        ap.add_argument(
-            "-l", "--maxsize",
-            help="Max size for randomly generated transfer input file e.g. 100Kb, 4Mb.")
-    
-        ap.add_argument(
-            "-n", "--numlimit", type=int,
-            help="Run until <numlimit> transfers hav occurred.")
-    
-        ap.add_argument(
-            "-t", "--timelimit", type=int,
-            help="Run until <timelimit> seconds have elapsed.")
-        
-        ap.add_argument(
-            "-f", "--file",
-            help="FQN of input script file.")
- 
-        ap.add_argument(
-            "-w", "--workercnt",
-            help="Number of workers in the thread pool (defaults to machine CPU core count)")
-
-        ap.add_argument(
-            "-v", "--verbosity",
-            help="Verbosity level for native Python Logging framework (default=DEBUG)")
-
-        ap.add_argument("-h", "--help", action='store_true')
-   
-        if len(sys.argv) < 2:
-            ap.print_help()
-            exit(16)
+        ap = sftp_argparse()
 
         args = ap.parse_args()
     
-        if vars(args)["help"]:
-            ap.print_help()
-            exit(16)
-
         logger = logging.getLogger(log_mod)
 
         verbosity = "DEBUG"
@@ -119,8 +64,8 @@ if __name__ == "__main__":
         fileHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
 
-        # Establish program mode & parameters
-        mode = args.mode.lower()
+        # Establish program command & parameters
+        command = args.command
 
         # Create the sftp job producer 
         producer = sftp_producer() 
@@ -129,7 +74,7 @@ if __name__ == "__main__":
         prodArgs   = [] # producer args for job creation 
  
         # Create the sftp job consumer 
-        consumer = sftp_consumer(args.server)
+        consumer = sftp_consumer(args.address)
         consFunc = consumer.process_job
 
 
@@ -137,7 +82,7 @@ if __name__ == "__main__":
 
         # #####################################################################
         # Randomly generate the SFTP jobs
-        if mode == "random":
+        if command == "flood":
             transLimit = 0
             if vars(args)["numlimit"]:
                 transLimit = args.numlimit
@@ -145,6 +90,10 @@ if __name__ == "__main__":
             timelimit = 0
             if vars(args)["timelimit"]:
                 timelimit = args.timelimit
+
+            transRate = 0
+            if vars(args)["rate"]:
+                transRate = args.rate
 
             cliSize = 0
             if vars(args)["size"]:
@@ -161,7 +110,7 @@ if __name__ == "__main__":
                     logger.critical("Bad --maxsize argument.")
                     ap.print_help()
                     exit(16)
-    
+
             accountList = []
      
             # Deserialize the account file
@@ -193,23 +142,23 @@ if __name__ == "__main__":
                     "Created data files for account '{0}', count={1}, size={2}, maxsize={3}".format(
                         acct.name_, cnt, size, maxsize))
  
-            prodFunc = producer.start_random
+            prodFunc = producer.start_flood
             # !!! Throttle param hard coded to 100 for now !!!
-            prodArgs = [accountList,transLimit,timelimit,100]
+            prodArgs = [accountList,transLimit,timelimit,transRate]
   
         # #####################################################################
         # Generate the SFTP jobs from a predefined script
-        elif mode == "scripted":
+        elif command == "replay":
             if not vars(args)["file"]:
-                logger.critical("Must provide a script file for --file mode.")
+                logger.critical("Must provide a JSON data file for replay command.")
                 ap.print_help()
                 exit(16)
 
-            prodFunc = producer.start_scripted
+            prodFunc = producer.start_replay
             prodArgs = [args.file]
     
         else:
-            logger.critical("'{0}' is not a valid run mode.".format(mode))
+            logger.critical("'{0}' is not a valid run command.".format(command))
             ap.print_help()
             exit(16)
          
@@ -241,7 +190,7 @@ if __name__ == "__main__":
         logger.info("SFTP testing complete.")
 
     except Exception as e:
-        msg = "Encountered exception: {0}".format(e)
+        msg = "Encountered exception in program __main__: {0}".format(e)
         if logger:
             logger.critical(msg)
         else:

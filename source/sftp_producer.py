@@ -22,7 +22,7 @@ class sftp_producer:
 
     # Main producer thread method for working through a pre-prepared set of
     # SFTP file operations from among the specified account list
-    def start_scripted(self, scriptloc, enqueuefunc, returnvals):
+    def start_replay(self, scriptloc, enqueuefunc, returnvals):
 
         # Perform SFTP tranfers, working off of the input script,
         # of until a count/time limit has been reached
@@ -51,13 +51,13 @@ class sftp_producer:
 
                 self.trans_count_ += 1
         except Exception as e:
-            msg = "Encountered an error in start_scripted thread: {0}".format(e)
+            msg = "Encountered an error in start_replay thread: {0}".format(e)
             sftp_producer.logger.error(msg)
             return 64
 
     # Main producer thread method for creating a set of randomized SFTP file
     # operations from among the specified account list
-    def start_random(self, acctlist, translimit, timelimit, throttle, enqueuefunc, returnvals):
+    def start_flood(self, acctlist, translimit, timelimit, rate, enqueuefunc, returnvals):
         try:
             random.seed()
 
@@ -70,9 +70,9 @@ class sftp_producer:
 
                 # Implement a very primitive job throttle, enforcing 
                 # a maximum number of jobs created per sec
-                if throttle > 0:
+                if rate > 0:
                     elapsed = time.time() - starttime
-                    if (self.trans_count_ / elapsed) > throttle:
+                    if (self.trans_count_ / elapsed) > rate :
                         time.sleep(.005)    # could be made more granular
                         continue
 
@@ -81,15 +81,17 @@ class sftp_producer:
 
                 if translimit > 0 and self.trans_count_ >= translimit:
                     sftp_producer.logger.info(
-                    ("Terminating SFTP random production after {0} "
-                    "transactions (trans limit reached)".format(self.trans_count_)))
+                    ("Terminating SFTP flooding after {0} "
+                    "transactions (trans limit={1} reached)".format(
+                        self.trans_count_, translimit)))
                     break
 
                 if stoptime > 0 and time.time() >= stoptime:
                     returnvals["timeout"] = True
                     sftp_producer.logger.info(
-                    ("Terminating SFTP random production after {0} "
-                    "transactions (time limit reached)".format(self.trans_count_)))
+                    ("Terminating SFTP flooding after {0} "
+                    "transactions (time limit={1} seconds reached)".format(
+                        self.trans_count_, timelimit)))
                     break
                
                 # Select a random account, file and cmd 
@@ -115,7 +117,7 @@ class sftp_producer:
    
                 self.trans_count_ += 1
         except Exception as e:
-            msg = "Encountered error in start_random thread: {0}".format(e)
+            msg = "Encountered error in start_flood thread: {0}".format(e)
             sftp_producer.logger.error(msg)
             return 64
 
