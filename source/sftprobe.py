@@ -148,24 +148,26 @@ if __name__ == "__main__":
   
         # #####################################################################
         # Generate the SFTP jobs from a predefined script
-        elif command == "replay":
-            if not vars(args)["file"]:
-                logger.critical("Must provide a JSON data file for replay command.")
+        elif command == "simulate":
+            if not vars(args)["actionfile"]:
+                logger.critical("Must provide a JSON data file for simulation commands.")
                 ap.print_help()
                 exit(16)
 
-            prodFunc = producer.start_replay
-            prodArgs = [args.file]
+            prodFunc = producer.start_simulate
+            prodArgs = [args.actionfile]
     
         else:
             logger.critical("'{0}' is not a valid run command.".format(command))
             ap.print_help()
             exit(16)
          
-        # Use the supplied worker count, or <system_cpu_cnt>
-        threadCnt = multiprocessing.cpu_count() 
-        if vars(args)["workercnt"]:
-            threadCnt = int(args.workercnt)
+        threadCnt = 1
+        if command == "flood":
+            # Use the supplied worker count, or <system_cpu_cnt>
+            threadCnt = multiprocessing.cpu_count() 
+            if vars(args)["workercnt"]:
+                threadCnt = int(args.workercnt) 
 
         # #####################################################################
         # Supervise creation & execution of the SFTP jobs 

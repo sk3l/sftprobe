@@ -29,20 +29,37 @@ class sftp_consumer:
 
     def process_job(self, account, cmd, params):
 
-        fname = params["LocalPath"]
-
         try:
-           
-            sftp_consumer.logger.debug(
-            "SFTP consumer {3} processing {0} of file '{1}' from account '{2} (serial# {4})'".format(
-                cmd, fname, account.name_,threading.current_thread().name,params["SerialNo"]))
+            fname = ""
+            if "LocalPath" in params:
+                fname = params["LocalPath"]
+            
+            serialno = 0
+            if "SerialNo" in params:
+                serialno = params["SerialNo"] 
+         
+            dbgstr = "SFTP consumer {0} processing {1} ".format(
+                threading.current_thread().name, cmd)
+                                      
+            if len(fname) > 0:
+                dbgstr += "of file '{0}' ".format(fname)
+
+            dbgstr += "from account '{0}'".format(account.name_)
+
+            if "SerialNo" in params:
+                dbgstr += " (serial# {0})".format(serialno)
+
+            sftp_consumer.logger.debug(dbgstr)
 
             clientconn = sftp_client(
                 self.server_addr_, account.username_, account.password_, account.key_)
 
             if cmd.upper() == "PUT":
-                clientconn.do_put(fname, params["RemotePath"] + "_" + str(params["SerialNo"]))
-                #account.file_put_map_[fname] = True
+                rpath = params["RemotePath"]
+                if serialno > 0:
+                    rpath += "_" + str(serialno)
+
+                clientconn.do_put(fname, rpath)
 
             elif cmd.upper() == "GET":
                 clientconn.do_get(params["RemotePath"], fname)

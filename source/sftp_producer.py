@@ -22,7 +22,7 @@ class sftp_producer:
 
     # Main producer thread method for working through a pre-prepared set of
     # SFTP file operations from among the specified account list
-    def start_replay(self, scriptloc, enqueuefunc, returnvals):
+    def start_simulate(self, scriptloc, enqueuefunc, returnvals):
 
         # Perform SFTP tranfers, working off of the input script,
         # of until a count/time limit has been reached
@@ -31,27 +31,26 @@ class sftp_producer:
             with open(scriptloc, "r") as scriptf:
                 workScript = json.load(scriptf)
 
-            for job in workScript["Jobs"]:
+            for action in workScript["Actions"]:
                 if self.stop_.isSet():
                     break
                 
-                if not "Account" in job:
+                if not "Account" in action:
                     sftp_producer.logger.warn(
-                    "encountered unknown account {0} in work script.".format(
-                        job["Account"]))
+                    "Encountered unknown account in work script.")
                     continue
-                account     = sftp_account.from_json_dict(job["Account"])
+                account     = sftp_account.from_json_dict(action["Account"])
     
-                operation   = job["Operation"]
+                operation   = action["Operation"]
                 cmd         = operation["Command"]
                 params      = operation["Parameters"]
- 
+
                 # Post the job on the work queue
                 enqueuefunc(account, cmd, params)
 
                 self.trans_count_ += 1
         except Exception as e:
-            msg = "Encountered an error in start_replay thread: {0}".format(e)
+            msg = "Encountered an error in start_simulate thread: {0}".format(e)
             sftp_producer.logger.error(msg)
             return 64
 
@@ -103,6 +102,7 @@ class sftp_producer:
                
                 (pathstr,filestr) = os.path.split(fname)
             
+                self.trans_count_ += 1
                 cmd = "PUT"
                 params = {
                     "LocalPath" : fname, 
@@ -115,7 +115,6 @@ class sftp_producer:
                 # Post the job on the work queue
                 enqueuefunc(account, cmd, params)
    
-                self.trans_count_ += 1
         except Exception as e:
             msg = "Encountered error in start_flood thread: {0}".format(e)
             sftp_producer.logger.error(msg)
