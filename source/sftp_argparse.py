@@ -12,7 +12,7 @@ class sftp_argparse():
             "    command:\n"
             "           flood - saturate an SFTP server "
                         "with randomly generated traffic\n"
-            "        simulate - execute a series of SFTP commands from a file\n\n"
+            "        trace - execute a series of SFTP commands from a file\n\n"
             "type 'sftprobe help <cmd>' for command-specific help\n\n"
             )
 
@@ -65,18 +65,18 @@ class sftp_argparse():
             "-v", dest="verbosity", metavar="verbosity",
             help="Verbosity level for Python Logging framework (default=DEBUG)")
 
-        self.simulate_parser_ = self.cmdparsers_.add_parser(
-                "simulate",
+        self.trace_parser_ = self.cmdparsers_.add_parser(
+                "trace",
                 description="    Execute a sequence of SFTP commands from a file\n")
 
-        self.simulate_parser_.add_argument("address",
+        self.trace_parser_.add_argument("address",
             help="Address of server to test against e.g. localhost:22.")
 
-        self.simulate_parser_.add_argument(
+        self.trace_parser_.add_argument(
             "actionfile", metavar="actionfile",
-            help="FQN of JSON file containing simulation actions.")
+            help="FQN of JSON file containing trace actions.")
 
-        self.simulate_parser_.add_argument(
+        self.trace_parser_.add_argument(
             "-v", dest="verbosity", metavar="verbosity",
             help="Verbosity level for Python Logging framework (default=DEBUG)")
 
@@ -98,8 +98,8 @@ class sftp_argparse():
             if  cmd == "flood" or helpcmd == "flood" :
                 self.flood_parser_.print_help()
                 exit(1)
-            elif cmd == "simulate" or helpcmd == "simulate":
-                self.simulate_parser_.print_help()
+            elif cmd == "trace" or helpcmd == "trace":
+                self.trace_parser_.print_help()
                 exit(1)
             else:
                 if cmd != "help":

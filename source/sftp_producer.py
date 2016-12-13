@@ -22,7 +22,7 @@ class sftp_producer:
 
     # Main producer thread method for working through a pre-prepared set of
     # SFTP file operations from among the specified account list
-    def start_simulate(self, scriptloc, enqueuefunc, returnvals):
+    def start_trace(self, scriptloc, enqueuefunc, returnvals):
 
         # Perform SFTP tranfers, working off of the input script,
         # of until a count/time limit has been reached
@@ -50,7 +50,7 @@ class sftp_producer:
 
                 self.trans_count_ += 1
         except Exception as e:
-            msg = "Encountered an error in start_simulate thread: {0}".format(e)
+            msg = "Encountered an error in start_trace thread: {0}".format(e)
             sftp_producer.logger.error(msg)
             return 64
 

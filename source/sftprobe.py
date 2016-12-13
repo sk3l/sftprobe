@@ -148,13 +148,13 @@ if __name__ == "__main__":
   
         # #####################################################################
         # Generate the SFTP jobs from a predefined script
-        elif command == "simulate":
+        elif command == "trace":
             if not vars(args)["actionfile"]:
-                logger.critical("Must provide a JSON data file for simulation commands.")
+                logger.critical("Must provide a JSON data file for trace commands.")
                 ap.print_help()
                 exit(16)
 
-            prodFunc = producer.start_simulate
+            prodFunc = producer.start_trace
             prodArgs = [args.actionfile]
     
         else:
