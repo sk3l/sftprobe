@@ -11,7 +11,7 @@ from filegen            import filegen
 
 class sftp_account:
 
-    logger =  logging.getLogger('sftp_test.account')
+    logger =  logging.getLogger('sftprobe.account')
     def __init__(self,
             name,               # Descriptive account name
             user="",            # System user name

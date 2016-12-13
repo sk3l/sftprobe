@@ -15,7 +15,7 @@ class sftp_commands(enum.Enum):
 
 class sftp_client:
 
-    logger =  logging.getLogger('sftp_test.client')
+    logger =  logging.getLogger('sftprobe.client')
     def __init__(self, servaddr, username="", password="", key=None):
         
         self.transport_ = Transport(servaddr)

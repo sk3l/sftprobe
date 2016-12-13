@@ -5,6 +5,7 @@ SERVER=localhost
 ACCT=./accounts.tester.json
 FILECNT=100
 WORKERS=12
+RATE=200
 TIME=30
 LOGLVL=INFO
 
@@ -23,13 +24,13 @@ fi
 rm -f ~/tmp/*
 
 echo "Running sftp test app"
-$APP flood $SERVER $ACCT -c $FILECNT -t $TIME -w $WORKERS -r 200 -v $LOGLVL > /dev/null 2>&1
+$APP flood $SERVER $ACCT -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL > /dev/null 2>&1
 
 # cleanup
 echo "Back up test logs"
-if ls ./sftp_test_log* > /dev/null 2>&1; then
-   cat ./sftp_test_log*
-   mv ./sftp_test_log* ./logs
+if ls ./sftprobe_log* > /dev/null 2>&1; then
+   cat ./sftprobe_log*
+   mv ./sftprobe_log* ./logs
 fi
 cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
 

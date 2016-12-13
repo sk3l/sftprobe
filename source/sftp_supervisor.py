@@ -7,7 +7,7 @@ import threading
 from sftp_consumer import sftp_status
 
 class sftp_supervisor:
-    logger =  logging.getLogger('sftp_test.supervisor')
+    logger =  logging.getLogger('sftprobe.supervisor')
     
     def __init__(self, threadcnt, prodfunc, prodargs, consfunc):
         self.complete_count_= 0 
@@ -28,53 +28,54 @@ class sftp_supervisor:
     def __exit__(self, exceptype, exceptval, traceback):
         self.thread_pool_.shutdown()
 
-    def add_a_job(self, account, cmd, params):
+    def add_a_command(self, account, cmd, params):
         self.future_list_.append(
            self.thread_pool_.submit(self.consumer_func_, account, cmd, params))
 
 
-    def process_jobs(self):
+    def execute_commands(self):
 
         returnvals = {}
 
-        self.producer_args_.append(self.add_a_job)
+        self.producer_args_.append(self.add_a_command)
         self.producer_args_.append(returnvals)
 
         pthread = threading.Thread(
                     target=self.producer_func_,
                     args=self.producer_args_)
 
-        # Fire up the producer thread to create SFTP jobs
+        # Fire up the producer thread to create SFTP commands 
         sftp_supervisor.logger.info("Beginning SFTP test data production.")
         pthread.start()
         pthread.join()
 
         if "timeout" in returnvals and returnvals["timeout"]:
-            sftp_supervisor.logger.info("Cancelling pending jobs.")
+            sftp_supervisor.logger.info("Cancelling queued commands.")
             self.cancel()
 
-        # Wait until all of the SFTP jobs have been processed by the consumer
-        sftp_supervisor.logger.info("Waiting for jobs to complete.")
-        self.wait_for_jobs()
+        # Wait until all of the SFTP coammands have been processed by the consumer
+        sftp_supervisor.logger.info("Waiting for commands to complete.")
+
+        self.wait_for_commands()
 
     def cancel(self):
-        for job in self.future_list_:
-            if not job.running() and not job.done():
-                job.cancel()
+        for command in self.future_list_:
+            if not command.running() and not command.done():
+                command.cancel()
                 self.cancel_count_ += 1
 
-    def wait_for_jobs(self):
+    def wait_for_commands(self):
         sftp_supervisor.logger.debug(
-        "Results length in sftp_supervisor::wait_for_jobs: {0}".format(
+        "Results length in sftp_supervisor::wait_for_commands: {0}".format(
             len(self.future_list_)))
 
         i = 1
-        for job in self.future_list_:
+        for command in self.future_list_:
             try:
-                if job.cancelled():
+                if command.cancelled():
                     continue
 
-                res = job.result()
+                res = command.result()
                 if res.status_ == sftp_status.Blocked:
                     retry_list.append(res)
                 elif res.status_ == sftp_status.Error:
@@ -88,7 +89,7 @@ class sftp_supervisor:
 
             except Exception as e:
                 sftp_supervisor.logger.error(
-                "Encountered error waiting for job {0} in sftp_supervisor: {1}".format(
+                "Encountered error waiting for command {0} in sftp_supervisor: {1}".format(
                 i, e))
             finally:
                 i += 1

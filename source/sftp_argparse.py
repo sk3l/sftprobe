@@ -10,9 +10,9 @@ class sftp_argparse():
     desc = (
             "usage: sftprobe.py command\n\n"
             "    command:\n"
-            "           flood - saturate an SFTP server "
+            "       flood - saturate an SFTP server "
                         "with randomly generated traffic\n"
-            "        trace - execute a series of SFTP commands from a file\n\n"
+            "       trace - execute a series of SFTP commands from a file\n\n"
             "type 'sftprobe help <cmd>' for command-specific help\n\n"
             )
 
@@ -59,7 +59,7 @@ class sftp_argparse():
 
         self.flood_parser_.add_argument(
             "-w", dest="workercnt", metavar="workercnt",
-            help="Number of workers in thread pool (defaults to machine CPU count)")
+            help="Thread pool size (defaults to machine CPU count)")
  
         self.flood_parser_.add_argument(
             "-v", dest="verbosity", metavar="verbosity",
@@ -73,8 +73,8 @@ class sftp_argparse():
             help="Address of server to test against e.g. localhost:22.")
 
         self.trace_parser_.add_argument(
-            "actionfile", metavar="actionfile",
-            help="FQN of JSON file containing trace actions.")
+            "cmdfile", metavar="cmdfile",
+            help="FQN of JSON file containing SFTP commands to execute.")
 
         self.trace_parser_.add_argument(
             "-v", dest="verbosity", metavar="verbosity",

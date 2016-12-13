@@ -23,11 +23,11 @@ class sftp_result:
 
 class sftp_consumer:
     
-    logger =  logging.getLogger('sftp_test.consumer')
+    logger =  logging.getLogger('sftprobe.consumer')
     def __init__(self, serveraddr):
         self.server_addr_ = serveraddr 
 
-    def process_job(self, account, cmd, params):
+    def process_command(self, account, cmd, params):
 
         try:
             fname = ""

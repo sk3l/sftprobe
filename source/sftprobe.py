@@ -33,7 +33,7 @@ def byte_size(fsizestr):
     else:
         return -1
 
-log_mod = "sftp_test"
+log_mod = "sftprobe"
 
 if __name__ == "__main__":
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         logger.addHandler(consHandler)
 
         fileHandler = logging.FileHandler(
-                        time.strftime("sftp_test_log_%H_%M_%m_%d_%Y.txt"))
+                        time.strftime("sftprobe_log_%H_%M_%m_%d_%Y.txt"))
         fileHandler.setLevel(verbosity)
         fileHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
@@ -67,21 +67,21 @@ if __name__ == "__main__":
         # Establish program command & parameters
         command = args.command
 
-        # Create the sftp job producer 
+        # Create the sftp command producer 
         producer = sftp_producer() 
                
-        prodFunc = None # producer func to create jobs
-        prodArgs   = [] # producer args for job creation 
+        prodFunc = None # producer func to produce the commands 
+        prodArgs   = [] # producer args for command creation 
  
-        # Create the sftp job consumer 
+        # Create the sftp command consumer 
         consumer = sftp_consumer(args.address)
-        consFunc = consumer.process_job
+        consFunc = consumer.process_command
 
 
-        # Determine which job production method to use based on program args
+        # Determine which command production method to use based on program args
 
         # #####################################################################
-        # Randomly generate the SFTP jobs
+        # Randomly generate the SFTP commands 
         if command == "flood":
             transLimit = 0
             if vars(args)["numlimit"]:
@@ -147,15 +147,15 @@ if __name__ == "__main__":
             prodArgs = [accountList,transLimit,timelimit,transRate]
   
         # #####################################################################
-        # Generate the SFTP jobs from a predefined script
+        # Read the SFTP commands from a predefined script
         elif command == "trace":
-            if not vars(args)["actionfile"]:
+            if not vars(args)["cmdfile"]:
                 logger.critical("Must provide a JSON data file for trace commands.")
                 ap.print_help()
                 exit(16)
 
             prodFunc = producer.start_trace
-            prodArgs = [args.actionfile]
+            prodArgs = [args.cmdfile]
     
         else:
             logger.critical("'{0}' is not a valid run command.".format(command))
@@ -170,12 +170,12 @@ if __name__ == "__main__":
                 threadCnt = int(args.workercnt) 
 
         # #####################################################################
-        # Supervise creation & execution of the SFTP jobs 
+        # Supervise execution of the SFTP commands 
         with sftp_supervisor(threadCnt, prodFunc, prodArgs, consFunc) as svsr:
 
-            svsr.process_jobs()
+            svsr.execute_commands()
 
-            logger.info("Finished processing SFTP jobs.")
+            logger.info("Finished processing SFTP commands.")
             logger.info("\tResults:")
             logger.info("\t========")
             logger.info("\tNumber of SFTP operations sourced:    {0}".format(

@@ -5,7 +5,7 @@ import os
 
 class filegen:
        
-    logger =  logging.getLogger('sftp_test.filegen')
+    logger =  logging.getLogger('sftprobe.filegen')
 
     # Write random sequence of bytes to an output file at the specified path.
     def gen_rand(self, fpath, size):

@@ -11,7 +11,7 @@ from sftp_account import sftp_account
 
 class sftp_producer:
 
-    logger =  logging.getLogger('sftp_test.producer')
+    logger =  logging.getLogger('sftprobe.producer')
     def __init__(self):
         self.trans_count_   = 0
         self.stop_          = threading.Event()
@@ -45,7 +45,7 @@ class sftp_producer:
                 cmd         = operation["Command"]
                 params      = operation["Parameters"]
 
-                # Post the job on the work queue
+                # Post the command on the work queue
                 enqueuefunc(account, cmd, params)
 
                 self.trans_count_ += 1
@@ -67,8 +67,8 @@ class sftp_producer:
 
             while True:
 
-                # Implement a very primitive job throttle, enforcing 
-                # a maximum number of jobs created per sec
+                # Implement a very primitive command throttle, enforcing 
+                # a maximum number of commands created per sec
                 if rate > 0:
                     elapsed = time.time() - starttime
                     if (self.trans_count_ / elapsed) > rate :
@@ -112,7 +112,7 @@ class sftp_producer:
                 #if random.random() > .5: #and fname in account.file_put_map_:
                 #    cmd = "GET"
 
-                # Post the job on the work queue
+                # Post the command on the work queue
                 enqueuefunc(account, cmd, params)
    
         except Exception as e:
