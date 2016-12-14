@@ -9,10 +9,11 @@ class sftp_argparse():
 
     desc = (
             "usage: sftprobe.py command\n\n"
-            "    command:\n"
-            "       flood - saturate an SFTP server "
+            "    command:\n\n"
+            "     control   interactively connect & execute SFTP commands\n"
+            "       flood   saturate an SFTP server "
                         "with randomly generated traffic\n"
-            "       trace - execute a series of SFTP commands from a file\n\n"
+            "       trace   execute a series of SFTP commands from a file\n\n"
             "type 'sftprobe help <cmd>' for command-specific help\n\n"
             )
 
@@ -24,6 +25,16 @@ class sftp_argparse():
 
         self.helpparser_ = self.cmdparsers_.add_parser("help")
 
+        self.control_parser_ = self.cmdparsers_.add_parser("control", 
+                description="    Interactively connect & execute SFTP commands\n")
+
+        self.control_parser_.add_argument("address",
+            help="Address of server to test against e.g. localhost:22.")
+
+        self.control_parser_.add_argument(
+            "-v", dest="verbosity", metavar="verbosity",
+            help="Verbosity level for Python Logging framework (default=DEBUG)")
+
         self.flood_parser_ = self.cmdparsers_.add_parser("flood", 
                 description="    Saturate an SFTP server with randomly generated traffic\n")
 
@@ -32,7 +43,7 @@ class sftp_argparse():
 
         self.flood_parser_.add_argument("accounts",
             help="FQN of account input JSON file")
- 
+
         self.flood_parser_.add_argument(
             "-c", type=int, dest="count", metavar="count",
             help="Number of test account files to transfer.")
@@ -44,7 +55,7 @@ class sftp_argparse():
         self.flood_parser_.add_argument(
             "-m", dest="maxsize", metavar="maxsize",
             help="Max size for random transfer input file e.g. 100Kb, 4Mb.")
- 
+
         self.flood_parser_.add_argument(
             "-r", type=int, dest="rate", metavar="rate",
             help="Max number of transfers to generate per second")
@@ -52,7 +63,7 @@ class sftp_argparse():
         self.flood_parser_.add_argument(
             "-n", type=int, dest="numlimit", metavar="numlimit",
             help="Run until <numlimit> transfers hav occurred.")
-   
+
         self.flood_parser_.add_argument(
             "-t", type=int, dest="timelimit", metavar="timelimit",
             help="Run until <timelimit> seconds have elapsed.")
@@ -60,7 +71,7 @@ class sftp_argparse():
         self.flood_parser_.add_argument(
             "-w", dest="workercnt", metavar="workercnt",
             help="Thread pool size (defaults to machine CPU count)")
- 
+
         self.flood_parser_.add_argument(
             "-v", dest="verbosity", metavar="verbosity",
             help="Verbosity level for Python Logging framework (default=DEBUG)")
@@ -95,7 +106,10 @@ class sftp_argparse():
 
             helpcmd = sys.argv[2].lower() if argc > 2 else ""
 
-            if  cmd == "flood" or helpcmd == "flood" :
+            if cmd == "control" or helpcmd == "control":
+                self.control_parser_.print_help()
+                exit(1)
+            elif cmd == "flood" or helpcmd == "flood":
                 self.flood_parser_.print_help()
                 exit(1)
             elif cmd == "trace" or helpcmd == "trace":

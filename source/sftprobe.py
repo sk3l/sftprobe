@@ -145,6 +145,12 @@ if __name__ == "__main__":
             prodFunc = producer.start_flood
             # !!! Throttle param hard coded to 100 for now !!!
             prodArgs = [accountList,transLimit,timelimit,transRate]
+
+        # #####################################################################
+        # Read the SFTP commands interactively from stdin
+        elif command == "control":
+            prodFunc = producer.start_control
+            prodArgs = []
   
         # #####################################################################
         # Read the SFTP commands from a predefined script

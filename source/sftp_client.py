@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from contextlib import contextmanager
+
 import enum
 import logging
 import sys
@@ -22,9 +24,23 @@ class sftp_client:
         self.key_       = key
         self.user_      = username
         self.pwd_       = password
+        self.session_   = None
 
-    def exec_sftp_cmd(self, cmd, **kwargs):
-        try:
+    @classmethod
+    def get_command(classobj, cmdstr):
+        cmdustr = cmdstr.upper() 
+        if cmdustr == "PUT":
+            return sftp_commands.Put
+        elif cmdustr == "GET":
+            return sftp_commands.Get
+        elif cmdustr == "LS":
+            return sftp_commands.List
+        else:
+            raise Exception("Unknown SFTP command {0}".format(cmdstr))
+
+
+    def connect(self):
+        if not self.session_ and not self.transport_.is_active():
             if self.key_:               # Try private key, if available
                 self.transport_.connect(username=self.user_, pkey=self.key_)
             elif len(self.pwd_) > 0:    # Next, try password, if available
@@ -32,32 +48,40 @@ class sftp_client:
             else:                       # Try just the user name
                 self.transport_.connect(username=self.user_)
 
-            sftp_sess = SFTPClient.from_transport(self.transport_)
-            
-            if cmd == sftp_commands.List:
-                return sftp_sess.listdir(kwargs["remotepath"])
-            
-            elif cmd == sftp_commands.Get:
-                file_attrs = sftp_sess.get(kwargs["remotepath"], kwargs["localpath"]) 
-            
-            elif cmd == sftp_commands.Put:
-                file_attrs = sftp_sess.put(kwargs["localpath"], kwargs["remotepath"]) 
+            self.session_ = SFTPClient.from_transport(self.transport_)
 
-        #except Exception as e:
-        #    sftp_client.logger.error(
-        #    "Encountered error in sftp_client::{1}: {0}".format(e, cmd))
-        finally:
-            if self.transport_.is_active():
-                self.transport_.close()
+    def close(self):
+        if self.session_:
+            self.session_.close()
+            self.session_ = None
+
+    def exec_sftp_cmd(self, cmd, **kwargs):
+        self.connect()
+
+        if cmd == sftp_commands.List:
+            return self.session_.listdir(kwargs["RemotePath"])
+
+        elif cmd == sftp_commands.Get:
+            file_attrs = self.session_.get(kwargs["RemotePath"], kwargs["LocalPath"]) 
+
+        elif cmd == sftp_commands.Put:
+            file_attrs = self.session_.put(kwargs["LocalPath"], kwargs["RemotePath"]) 
 
     def do_listdir(self, path):
-        return self.exec_sftp_cmd(sftp_commands.List, remotepath=path)
+        return self.exec_sftp_cmd(sftp_commands.List, RemotePath=path)
    
     def do_get(self, rpth, lpth):
-        return self.exec_sftp_cmd(sftp_commands.Get, remotepath=rpth, localpath=lpth)
+        return self.exec_sftp_cmd(sftp_commands.Get, RemotePath=rpth, LocalPath=lpth)
     
     def do_put(self, lpth, rpth):
-        return self.exec_sftp_cmd(sftp_commands.Put, localpath=lpth, remotepath=rpth)
+        return self.exec_sftp_cmd(sftp_commands.Put, LocalPath=lpth, RemotePath=rpth)
+
+@contextmanager
+def get_sftp_connection(servaddr, username="", password="", key=None):
+    client = sftp_client(servaddr, username, password, key) 
+    client.connect()
+    yield client
+    client.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 5 or len(sys.argv) > 6:

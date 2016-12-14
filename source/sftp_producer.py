@@ -1,9 +1,11 @@
 #!/opt/bb/bin/python3.5
 
+import fileinput
 import json
 import logging
 import os
 import random
+import sys
 import time
 import threading
 
@@ -120,6 +122,25 @@ class sftp_producer:
             sftp_producer.logger.error(msg)
             return 64
 
+    def start_control(self, enqueuefunc, returnvals):
+        try:
+            for line in sys.stdin:
+
+                cmd = line.strip()
+                sftp_producer.logger.debug(
+                    "Recevied command '{0}' as input to control mode.".format(cmd))
+
+                if cmd == "quit" or cmd == "bye":
+                    sftp_producer.logger.info(
+                        "Terminating control mode on user's request.")
+                    break
+
+            returnvals = {}
+
+        except Exception as e:
+            msg = "Encountered error in start_control thread: {0}".format(e)
+            sftp_producer.logger.error(msg)
+            return 64
 
     def stop(self):
         self.stop_.set()

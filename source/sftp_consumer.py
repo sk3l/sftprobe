@@ -7,6 +7,7 @@ import threading
 
 from sftp_account   import sftp_account
 from sftp_client    import sftp_client
+from sftp_client    import get_sftp_connection
 
 class sftp_status(enum.Enum):
     Unknown = -1
@@ -30,50 +31,41 @@ class sftp_consumer:
     def process_command(self, account, cmd, params):
 
         try:
-            fname = ""
-            if "LocalPath" in params:
-                fname = params["LocalPath"]
-            
-            serialno = 0
-            if "SerialNo" in params:
-                serialno = params["SerialNo"] 
-         
             dbgstr = "SFTP consumer {0} processing {1} ".format(
                 threading.current_thread().name, cmd)
-                                      
-            if len(fname) > 0:
-                dbgstr += "of file '{0}' ".format(fname)
+
+            if "LocalPath" in params:
+                dbgstr += "of file '{0}' ".format(params["LocalPath"])
 
             dbgstr += "from account '{0}'".format(account.name_)
 
+            # If there's a serial number and remote path present,
+            # append the serial number to the remote path to make
+            # unique file names on remote host
             if "SerialNo" in params:
-                dbgstr += " (serial# {0})".format(serialno)
+                dbgstr += " (serial# {0})".format(params["SerialNo"])
+                if "RemotePath" in params:
+                    params["RemotePath"] = "{0}_{1}".format(
+                                            params["RemotePath"], 
+                                            params["SerialNo"])
 
             sftp_consumer.logger.debug(dbgstr)
 
-            clientconn = sftp_client(
-                self.server_addr_, account.username_, account.password_, account.key_)
+            with get_sftp_connection(
+                    self.server_addr_, 
+                    account.username_, 
+                    account.password_, 
+                    account.key_)      as sftpconn:
 
-            if cmd.upper() == "PUT":
-                rpath = params["RemotePath"]
-                if serialno > 0:
-                    rpath += "_" + str(serialno)
-
-                clientconn.do_put(fname, rpath)
-
-            elif cmd.upper() == "GET":
-                clientconn.do_get(params["RemotePath"], fname)
-            
-            elif cmd.upper() == "LS":
-                clientconn.do_listdir(params["RemotePath"])
-            
-            else:
-                lgger.warn("unrecognized cmd {0} for {1} in {2}.".format(
-                    cmd, fname, account.name_))
+                sftpconn.exec_sftp_cmd(sftp_client.get_command(cmd), **params)
 
             return sftp_result(account, cmd, params, sftp_status.Success)
         except Exception as err:
-            sftp_consumer.logger.error("Encountered error during {0} of {1} in {2}: '{3}'".format(
-                cmd, fname, account.name_, err))
+            errstr = "Encountered error during {0} ".format(cmd)
+            if "LocalPath" in params:
+                errstr += "of {0} ".format(params["LocalPath"])
+            errstr += "in account {0}: '{1}'".format(account.name_, err)
+
+            sftp_consumer.logger.error(errstr)
             return sftp_result(account, cmd, params, sftp_status.Error)
 
