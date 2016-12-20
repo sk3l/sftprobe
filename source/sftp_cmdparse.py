@@ -1,11 +1,85 @@
 #!/opt/bb/bin/python3.5
 
+import getpass
 import logging
+import sys
 
 from sftp_client import sftp_client
+from sftp_client import get_sftp_connection
 
 class sftp_cmdparse:
 
-    logger =  logging.getLogger('sftprobe.cmdparse')
-    def __init__(self, addr):
+    #logger =  logging.getLogger('sftprobe.cmdparse')
+    def __init__(self, addr, user="", pwd="", key=None):
         self.address_ = addr
+        self.user_    = user.strip()
+        self.password_= pwd.strip()
+        self.key_     = key
+
+    def accept_commands(self):
+        # Print the command prompt
+
+        if len(self.user_) < 1:
+            sys.stdout.write("Enter sftp user name: ")
+            sys.stdout.flush()
+            self.user_ = sys.stdin.readline().strip()
+
+        if len(self.password_) < 1:
+            self.password_ = getpass.getpass()
+
+        with get_sftp_connection(
+            self.address_,
+            self.user_,
+            self.password_,
+            self.key_) as conn:
+
+            print(conn.get_status())
+
+            sys.stdout.write("\n$> ")
+            for line in sys.stdin:
+                try:
+
+                    cmd = line.strip()
+                    lcmd= cmd.lower()
+                    #sftp_cmdparse.logger.debug(
+                    #    "Recevied command '{0}' as input to control mode.".format(cmd))
+
+                    # Parse command and dispatch SFTP command
+                    if lcmd.startswith("ls"):
+                        path = ""
+                        if len(cmd) > 3 and cmd[2] == ' ':
+                            path = cmd[3:]
+
+                        listing = conn.do_listdir(path)
+                        for item in listing:
+                            #sys.stdout.write(attrib)
+                            print(item)
+                        sys.stdout.flush()
+
+                    elif lcmd.startswith("cd"):
+                        path = ""
+                        if len(cmd) > 3 and cmd[2] == ' ':
+                            path = cmd[3:]
+
+                        conn.do_changedir(path)
+                        print("Changed path to '{0}'".format(path))
+
+                    elif lcmd == "quit" or cmd == "bye":
+                        print()
+                        #sftp_cmdparse.logger.info(
+                        #    "Terminating control mode on user's request.")
+                        break
+
+                    else:
+                        print(
+                            ("Sorry, didn't recognize command '{0}'; "
+                             "please try again.").format(cmd))
+
+                except Exception as e:
+                    print("Error : {0}".format(e))
+                finally:
+                    if cmd != "quit" and cmd != "bye":
+                        sys.stdout.write("$> ")
+                        sys.stdout.flush()
+
+

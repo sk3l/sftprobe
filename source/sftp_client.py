@@ -10,10 +10,11 @@ from paramiko import Transport
 from paramiko import SFTPClient
 
 class sftp_commands(enum.Enum):
-    Unknown = 0
-    List    = 1
-    Put     = 2
-    Get     = 3
+    Unknown     = 0
+    List        = 1
+    ChangeDir   = 2
+    Put         = 3
+    Get         = 4
 
 class sftp_client:
 
@@ -35,6 +36,8 @@ class sftp_client:
             return sftp_commands.Get
         elif cmdustr == "LS":
             return sftp_commands.List
+        elif cmdustr == "CD":
+            return sftp_commands.ChangeDir
         else:
             raise Exception("Unknown SFTP command {0}".format(cmdstr))
 
@@ -55,11 +58,22 @@ class sftp_client:
             self.session_.close()
             self.session_ = None
 
+    def get_status(self):
+        if self.transport_.is_active():
+            peer = self.transport_.getpeername()
+            return "Connected to host [{0}], port {1}.".format(
+                peer[0], peer[1])
+        else:
+            return "Not connected."
+
     def exec_sftp_cmd(self, cmd, **kwargs):
         self.connect()
 
         if cmd == sftp_commands.List:
             return self.session_.listdir(kwargs["RemotePath"])
+
+        elif cmd == sftp_commands.ChangeDir:
+            return self.session_.chdir(kwargs["RemotePath"])
 
         elif cmd == sftp_commands.Get:
             file_attrs = self.session_.get(kwargs["RemotePath"], kwargs["LocalPath"]) 
@@ -67,8 +81,15 @@ class sftp_client:
         elif cmd == sftp_commands.Put:
             file_attrs = self.session_.put(kwargs["LocalPath"], kwargs["RemotePath"]) 
 
+    def do_changedir(self, path):
+        return self.exec_sftp_cmd(
+            sftp_commands.ChangeDir,
+            RemotePath=path if len(path) > 0 else None)
+
     def do_listdir(self, path):
-        return self.exec_sftp_cmd(sftp_commands.List, RemotePath=path)
+        return self.exec_sftp_cmd(
+            sftp_commands.List,
+            RemotePath=path if len(path) > 0 else "." )
    
     def do_get(self, rpth, lpth):
         return self.exec_sftp_cmd(sftp_commands.Get, RemotePath=rpth, LocalPath=lpth)
