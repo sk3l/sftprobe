@@ -65,7 +65,7 @@ class sftp_cmdparse:
                         print("Changed path to '{0}'".format(path))
 
                     elif lcmd.startswith("get"):
-                      
+
                         if len(lcmd) < 5:
                             print("Missing required remote path for 'get'")
                             continue
@@ -74,7 +74,7 @@ class sftp_cmdparse:
                         # remotePath for the local file path if no localPath
                         # arg is provided.
                         args = lcmd[4:].partition(' ')
-                       
+
                         src = args[0]
                         dest= args[2] if len(args) > 2 and args[2] != "" else src
 
@@ -94,7 +94,7 @@ class sftp_cmdparse:
                         # localPath for the remote file path if no remotePath
                         # arg is provided.
                         args = lcmd[4:].partition(' ')
-                       
+
                         src = args[0]
                         dest= args[2] if len(args) > 2 and args[2] != "" else src
 
