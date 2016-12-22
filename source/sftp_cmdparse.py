@@ -64,6 +64,46 @@ class sftp_cmdparse:
                         conn.do_changedir(path)
                         print("Changed path to '{0}'".format(path))
 
+                    elif lcmd.startswith("get"):
+                      
+                        if len(lcmd) < 5:
+                            print("Missing required remote path for 'get'")
+                            continue
+
+                        # Split get args into 'remotePath [localPath]', using
+                        # remotePath for the local file path if no localPath
+                        # arg is provided.
+                        args = lcmd[4:].partition(' ')
+                       
+                        src = args[0]
+                        dest= args[2] if len(args) > 2 and args[2] != "" else src
+
+                        conn.do_get(src, dest)
+
+                        print("Got file '{0}' from remote host to local file '{1}'".format(
+                            src,dest))
+
+
+                    elif lcmd.startswith("put"):
+
+                        if len(lcmd) < 5:
+                            print("Missing required local path for 'put'")
+                            continue
+
+                        # Split get args into 'localPath [remotePath]', using
+                        # localPath for the remote file path if no remotePath
+                        # arg is provided.
+                        args = lcmd[4:].partition(' ')
+                       
+                        src = args[0]
+                        dest= args[2] if len(args) > 2 and args[2] != "" else src
+
+                        conn.do_put(src, dest)
+
+                        print("Put file '{0}' from local host to remote file '{1}'".format(
+                            src,dest))
+
+
                     elif lcmd == "quit" or cmd == "bye":
                         print()
                         #sftp_cmdparse.logger.info(
