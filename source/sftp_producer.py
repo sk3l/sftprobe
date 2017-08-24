@@ -6,7 +6,6 @@ import logging
 import os
 import random
 import time
-import threading
 
 from sftp_account   import sftp_account
 from sftp_cmdparse  import sftp_cmdparse
@@ -16,7 +15,7 @@ class sftp_producer:
     logger =  logging.getLogger('sftprobe.producer')
     def __init__(self):
         self.trans_count_   = 0
-        self.stop_          = threading.Event()
+
         # keep the accounts hashed by name
         #self.account_map_   = {}
         #for account in self.account_list_:
@@ -34,8 +33,6 @@ class sftp_producer:
                 workScript = json.load(scriptf)
 
             for action in workScript["Actions"]:
-                if self.stop_.isSet():
-                    break
                 
                 if not "Account" in action:
                     sftp_producer.logger.warn(
@@ -76,9 +73,6 @@ class sftp_producer:
                     if (self.trans_count_ / elapsed) > rate :
                         time.sleep(.005)    # could be made more granular
                         continue
-
-                if self.stop_.isSet():
-                    break
 
                 if translimit > 0 and self.trans_count_ >= translimit:
                     sftp_producer.logger.info(
@@ -121,6 +115,3 @@ class sftp_producer:
             msg = "Encountered error in start_flood thread: {0}".format(e)
             sftp_producer.logger.error(msg)
             return 64
-
-    def stop(self):
-        self.stop_.set()

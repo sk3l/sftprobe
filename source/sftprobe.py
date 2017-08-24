@@ -192,16 +192,16 @@ if __name__ == "__main__":
                 ap.print_help()
                 exit(16)
 
-            threadCnt = 1
+            workerCnt = 1
             if command == "flood":
                 # Use the supplied worker count, or <system_cpu_cnt>
-                threadCnt = multiprocessing.cpu_count()
+                workerCnt = multiprocessing.cpu_count()
                 if vars(args)["workercnt"]:
-                    threadCnt = int(args.workercnt)
+                    workerCnt = int(args.workercnt)
 
             # #################################################################
             # Supervise execution of the SFTP commands
-            with sftp_supervisor(threadCnt, prodFunc, prodArgs, consFunc) as s:
+            with sftp_supervisor(workerCnt, prodFunc, prodArgs, consFunc) as s:
 
                 s.execute_commands()
 

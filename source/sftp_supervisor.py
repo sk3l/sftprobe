@@ -2,21 +2,20 @@
 
 import concurrent.futures
 import logging
-import threading
 
 from sftp_consumer import sftp_status
 
 class sftp_supervisor:
     logger =  logging.getLogger('sftprobe.supervisor')
     
-    def __init__(self, threadcnt, prodfunc, prodargs, consfunc):
+    def __init__(self, workercnt, prodfunc, prodargs, consfunc):
         self.complete_count_= 0 
         self.cancel_count_  = 0
         self.error_count_   = 0
  
         self.future_list_   = []
-        self.thread_pool_   = concurrent.futures.ThreadPoolExecutor(
-                                max_workers=threadcnt)
+        self.process_pool_   = concurrent.futures.ProcessPoolExecutor(
+                                max_workers=workercnt)
 
         self.producer_func_ = prodfunc
         self.producer_args_ = prodargs
@@ -26,11 +25,11 @@ class sftp_supervisor:
         return self
 
     def __exit__(self, exceptype, exceptval, traceback):
-        self.thread_pool_.shutdown()
+        self.process_pool_.shutdown()
 
     def add_a_command(self, account, cmd, params):
         self.future_list_.append(
-           self.thread_pool_.submit(self.consumer_func_, account, cmd, params))
+           self.process_pool_.submit(self.consumer_func_, account, cmd, params))
 
 
     def execute_commands(self):
@@ -40,14 +39,9 @@ class sftp_supervisor:
         self.producer_args_.append(self.add_a_command)
         self.producer_args_.append(returnvals)
 
-        pthread = threading.Thread(
-                    target=self.producer_func_,
-                    args=self.producer_args_)
-
-        # Fire up the producer thread to create SFTP commands 
+        # Fire up the producer to create SFTP commands 
         sftp_supervisor.logger.info("Beginning SFTP test data production.")
-        pthread.start()
-        pthread.join()
+        self.producer_func_(*self.producer_args_)
 
         if "timeout" in returnvals and returnvals["timeout"]:
             sftp_supervisor.logger.info("Cancelling queued commands.")

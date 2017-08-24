@@ -3,7 +3,7 @@
 import concurrent.futures
 import enum
 import logging
-import threading
+import os
 
 from sftp_account   import sftp_account
 from sftp_client    import sftp_client
@@ -32,8 +32,7 @@ class sftp_consumer:
 
         try:
             dbgstr = "SFTP consumer {0} processing {1} ".format(
-                threading.current_thread().name, cmd)
-
+                os.getpid(), cmd)
             if "LocalPath" in params:
                 dbgstr += "of file '{0}' ".format(params["LocalPath"])
 
