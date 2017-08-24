@@ -1,30 +1,32 @@
 #!/bin/bash
 
 APP=../source/sftprobe.py
-SERVER=localhost
-ACCT=./accounts.tester.json
+SERVER=localhost:2246
+ACCT=./sftprobe-tesla.json
 FILECNT=100
-WORKERS=12
-RATE=200
+WORKERS=4
+RATE=10
 TIME=30
 LOGLVL=INFO
 
 # teardown from previous tests
+
+
 echo "Cleaning up from previou tests"
 sudo truncate -s 0 /var/log/sftp.log
 
-if [ -e ~tester ]; then
-   sudo rm -f ~tester/test*
+if [ -e ~tesla ]; then
+   sudo rm -f ~tesla/test*
 fi
 
-if [ -e ~tester2 ]; then
-   sudo rm -f ~tester2/test*
+if [ ! -e /tmp/data ]; then
+   mkdir /tmp/data
 fi
 
 rm -f ~/tmp/*
 
 echo "Running sftp test app"
-$APP flood $SERVER $ACCT -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL > /dev/null 2>&1
+$APP flood $SERVER $ACCT -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL #> /dev/null 2>&1
 
 # cleanup
 echo "Back up test logs"
