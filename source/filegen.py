@@ -1,4 +1,4 @@
-#!/opt/bb/bin/python3.5
+#!/usr/bin/env python3
 
 import logging
 import os
