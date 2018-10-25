@@ -5,6 +5,8 @@ import enum
 import logging
 import os
 
+from timeit         import default_timer as stopwatch
+
 from sftp_account   import sftp_account
 from sftp_client    import sftp_client
 from sftp_client    import get_sftp_connection
@@ -16,17 +18,18 @@ class sftp_status(enum.Enum):
     Error   = 2
 
 class sftp_result:
-    def __init__(self, account, cmd, params, status=sftp_status.Unknown):
+    def __init__(self, account, cmd, params, time=None, status=sftp_status.Unknown):
         self.account_   = account
         self.command_   = cmd
         self.parameters_= params
+        self.time_      = time  # measurement of elapsed 'wall clock' time
         self.status_    = status
 
 class sftp_consumer:
-    
+
     logger =  logging.getLogger('sftprobe.consumer')
     def __init__(self, serveraddr):
-        self.server_addr_ = serveraddr 
+        self.server_addr_ = serveraddr
 
     def process_command(self, account, cmd, params):
 
@@ -45,20 +48,22 @@ class sftp_consumer:
                 dbgstr += " (serial# {0})".format(params["SerialNo"])
                 if "RemotePath" in params:
                     params["RemotePath"] = "{0}_{1}".format(
-                                            params["RemotePath"], 
+                                            params["RemotePath"],
                                             params["SerialNo"])
 
             sftp_consumer.logger.debug(dbgstr)
 
             with get_sftp_connection(
-                    self.server_addr_, 
-                    account.username_, 
-                    account.password_, 
+                    self.server_addr_,
+                    account.username_,
+                    account.password_,
                     account.key_)      as sftpconn:
 
+                start_tm = stopwatch()
                 sftpconn.exec_sftp_cmd(sftp_client.get_command(cmd), **params)
+                stop_tm = stopwatch()
 
-            return sftp_result(account, cmd, params, sftp_status.Success)
+            return sftp_result(account, cmd, params, stop_tm-start_tm, sftp_status.Success)
         except Exception as err:
             errstr = "Encountered error during {0} ".format(cmd)
             if "LocalPath" in params:
@@ -66,5 +71,5 @@ class sftp_consumer:
             errstr += "in account {0}: '{1}'".format(account.name_, err)
 
             sftp_consumer.logger.error(errstr)
-            return sftp_result(account, cmd, params, sftp_status.Error)
+            return sftp_result(account, cmd, params, None, sftp_status.Error)
 

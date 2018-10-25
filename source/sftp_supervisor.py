@@ -2,24 +2,26 @@
 
 import concurrent.futures
 import logging
+import numpy
 
 from sftp_consumer import sftp_status
 
 class sftp_supervisor:
     logger =  logging.getLogger('sftprobe.supervisor')
-    
+
     def __init__(self, workercnt, prodfunc, prodargs, consfunc):
-        self.complete_count_= 0 
+        self.complete_count_= 0
         self.cancel_count_  = 0
         self.error_count_   = 0
- 
+        self.cmd_avg_time_  = 0.0
+
         self.future_list_   = []
         self.process_pool_   = concurrent.futures.ProcessPoolExecutor(
                                 max_workers=workercnt)
 
         self.producer_func_ = prodfunc
         self.producer_args_ = prodargs
-        self.consumer_func_ = consfunc 
+        self.consumer_func_ = consfunc
 
     def __enter__(self):
         return self
@@ -39,7 +41,7 @@ class sftp_supervisor:
         self.producer_args_.append(self.add_a_command)
         self.producer_args_.append(returnvals)
 
-        # Fire up the producer to create SFTP commands 
+        # Fire up the producer to create SFTP commands
         sftp_supervisor.logger.info("Beginning SFTP test data production.")
         self.producer_func_(*self.producer_args_)
 
@@ -63,6 +65,8 @@ class sftp_supervisor:
         "Results length in sftp_supervisor::wait_for_commands: {0}".format(
             len(self.future_list_)))
 
+        cmd_time_list = []
+
         i = 1
         for command in self.future_list_:
             try:
@@ -81,10 +85,14 @@ class sftp_supervisor:
                     "Unknown SFTP result for account={0}, cmd={1}, params={2}".format(
                         res.account_, res.command_, res.parameters_))
 
+                if res.time_ is not None:
+                    cmd_time_list.append(res.time_)
+
             except Exception as e:
                 sftp_supervisor.logger.error(
                 "Encountered error waiting for command {0} in sftp_supervisor: {1}".format(
                 i, e))
             finally:
                 i += 1
-
+        #import pdb;pdb.set_trace()
+        self.cmd_avg_time_ = numpy.mean(cmd_time_list)

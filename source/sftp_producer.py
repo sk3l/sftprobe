@@ -33,13 +33,13 @@ class sftp_producer:
                 workScript = json.load(scriptf)
 
             for action in workScript["Actions"]:
-                
+
                 if not "Account" in action:
                     sftp_producer.logger.warn(
                     "Encountered unknown account in work script.")
                     continue
                 account     = sftp_account.from_json_dict(action["Account"])
-    
+
                 operation   = action["Operation"]
                 cmd         = operation["Command"]
                 params      = operation["Parameters"]
@@ -66,7 +66,7 @@ class sftp_producer:
 
             while True:
 
-                # Implement a very primitive command throttle, enforcing 
+                # Implement a very primitive command throttle, enforcing
                 # a maximum number of commands created per sec
                 if rate > 0:
                     elapsed = time.time() - starttime
@@ -88,29 +88,29 @@ class sftp_producer:
                     "transactions (time limit={1} seconds reached)".format(
                         self.trans_count_, timelimit)))
                     break
-               
-                # Select a random account, file and cmd 
+
+                # Select a random account, file and cmd
                 i = random.randrange(0, len(acctlist))
                 account = acctlist[i]
-                
+
                 i = random.randrange(0, len(account.file_list_))
                 fname = account.file_list_[i]
-               
+
                 (pathstr,filestr) = os.path.split(fname)
-            
+
                 self.trans_count_ += 1
                 cmd = "PUT"
                 params = {
-                    "LocalPath" : fname, 
-                    "RemotePath": filestr, 
+                    "LocalPath" : fname,
+                    "RemotePath": filestr,
                     "SerialNo"  : self.trans_count_
-                } 
+                }
                 #if random.random() > .5: #and fname in account.file_put_map_:
                 #    cmd = "GET"
 
                 # Post the command on the work queue
                 enqueuefunc(account, cmd, params)
-   
+
         except Exception as e:
             msg = "Encountered error in start_flood thread: {0}".format(e)
             sftp_producer.logger.error(msg)
