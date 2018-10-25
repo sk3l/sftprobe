@@ -57,6 +57,8 @@ class sftp_client:
         if self.session_:
             self.session_.close()
             self.session_ = None
+        self.transport_.close()
+        self.transport_ = None
 
     def get_status(self):
         if self.transport_.is_active():
