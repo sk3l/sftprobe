@@ -1,12 +1,13 @@
 #!/bin/bash
 
 APP=../source/sftprobe.py
-SERVER="$1:$2"
-ACCT=./sftprobe-tesla.json
+ACCT="$1"
+SERVER="$2:$3"
+#ACCT=./accounts.cisftpdev.json
 FILECNT=100
-WORKERS=20
-RATE=8
-TIME=30
+WORKERS=10
+RATE=100
+TIME=60
 LOGLVL=INFO
 
 # teardown from previous tests
@@ -34,7 +35,7 @@ if ls ./sftprobe_log* > /dev/null 2>&1; then
    cat ./sftprobe_log*
    mv ./sftprobe_log* ./logs
 fi
-cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
+#cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
 
-sudo cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
+#sudo cp /var/log/sftp.log "./logs/sftp.log.$(date -Iseconds)"
 #sudo chown mskelton8:mskelton8 logs/sftp.log*
