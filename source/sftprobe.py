@@ -215,6 +215,9 @@ if __name__ == "__main__":
                     "\tNumber of SFTP operations completed:  {0}".format(
                     s.complete_count_))
                 logger.info(
+                    "\tAverage SFTP session time:            {0:.3f}".format(
+                    s.sess_avg_time_))
+                logger.info(
                     "\tAverage SFTP command time:            {0:.3f}".format(
                     s.cmd_avg_time_))
                 if s.error_count_ > 0:

@@ -14,7 +14,7 @@ class sftp_supervisor:
         self.cancel_count_  = 0
         self.error_count_   = 0
         self.cmd_avg_time_  = 0.0
-
+        self.sess_avg_time_ = 0.0
         self.future_list_   = []
         self.process_pool_   = concurrent.futures.ProcessPoolExecutor(
                                 max_workers=workercnt)
@@ -66,6 +66,7 @@ class sftp_supervisor:
             len(self.future_list_)))
 
         cmd_time_list = []
+        sess_time_list = []
 
         i = 1
         for command in self.future_list_:
@@ -85,8 +86,11 @@ class sftp_supervisor:
                     "Unknown SFTP result for account={0}, cmd={1}, params={2}".format(
                         res.account_, res.command_, res.parameters_))
 
-                if res.time_ is not None:
-                    cmd_time_list.append(res.time_)
+                if res.cmd_time_ is not None:
+                    cmd_time_list.append(res.cmd_time_)
+
+                if res.sess_time_ is not None:
+                    sess_time_list.append(res.sess_time_)
 
             except Exception as e:
                 sftp_supervisor.logger.error(
@@ -96,3 +100,4 @@ class sftp_supervisor:
                 i += 1
         #import pdb;pdb.set_trace()
         self.cmd_avg_time_ = numpy.mean(cmd_time_list)
+        self.sess_avg_time_= numpy.mean(sess_time_list)

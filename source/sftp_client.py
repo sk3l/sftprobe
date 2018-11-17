@@ -20,7 +20,7 @@ class sftp_client:
 
     logger =  logging.getLogger('sftprobe.client')
     def __init__(self, servaddr, username="", password="", key=None):
-        
+
         self.transport_ = Transport(servaddr)
         self.key_       = key
         self.user_      = username
@@ -29,7 +29,7 @@ class sftp_client:
 
     @classmethod
     def get_command(classobj, cmdstr):
-        cmdustr = cmdstr.upper() 
+        cmdustr = cmdstr.upper()
         if cmdustr == "PUT":
             return sftp_commands.Put
         elif cmdustr == "GET":
@@ -78,10 +78,10 @@ class sftp_client:
             return self.session_.chdir(kwargs["RemotePath"])
 
         elif cmd == sftp_commands.Get:
-            file_attrs = self.session_.get(kwargs["RemotePath"], kwargs["LocalPath"]) 
+            file_attrs = self.session_.get(kwargs["RemotePath"], kwargs["LocalPath"])
 
         elif cmd == sftp_commands.Put:
-            file_attrs = self.session_.put(kwargs["LocalPath"], kwargs["RemotePath"]) 
+            file_attrs = self.session_.put(kwargs["LocalPath"], kwargs["RemotePath"])
 
     def do_changedir(self, path):
         return self.exec_sftp_cmd(
@@ -92,16 +92,16 @@ class sftp_client:
         return self.exec_sftp_cmd(
             sftp_commands.List,
             RemotePath=path if len(path) > 0 else "." )
-   
+
     def do_get(self, rpth, lpth):
         return self.exec_sftp_cmd(sftp_commands.Get, RemotePath=rpth, LocalPath=lpth)
-    
+
     def do_put(self, lpth, rpth):
         return self.exec_sftp_cmd(sftp_commands.Put, LocalPath=lpth, RemotePath=rpth)
 
 @contextmanager
 def get_sftp_connection(servaddr, username="", password="", key=None):
-    client = sftp_client(servaddr, username, password, key) 
+    client = sftp_client(servaddr, username, password, key)
     client.connect()
     yield client
     client.close()
