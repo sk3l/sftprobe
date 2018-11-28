@@ -35,22 +35,19 @@ class sftp_consumer:
     def process_command(self, account, cmd, params):
 
         try:
-            dbgstr = "SFTP consumer {0} processing {1} ".format(
-                os.getpid(), cmd)
+            dbgstr = "SFTP consumer {0} processing {1} from account '{2}' ".format(
+                os.getpid(), cmd, account.name_)
             if "LocalPath" in params:
-                dbgstr += "of file '{0}' ".format(params["LocalPath"])
-
-            dbgstr += "from account '{0}'".format(account.name_)
+                dbgstr += "for local file '{0}' ".format(params["LocalPath"])
 
             # If there's a serial number and remote path present,
             # append the serial number to the remote path to make
             # unique file names on remote host
             if "SerialNo" in params:
-                dbgstr += " (serial# {0})".format(params["SerialNo"])
                 if "RemotePath" in params:
-                    params["RemotePath"] = "{0}_{1}".format(
-                                            params["RemotePath"],
-                                            params["SerialNo"])
+                    dbgstr += " for remote file '{0}' ".format(params["RemotePath"])
+
+                dbgstr += " for (serial# {0})".format(params["SerialNo"])
 
             sftp_consumer.logger.debug(dbgstr)
 

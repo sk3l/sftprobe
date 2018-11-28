@@ -99,15 +99,18 @@ class sftp_producer:
                 (pathstr,filestr) = os.path.split(fname)
 
                 self.trans_count_ += 1
+
+                # TO DO : make the command and parameters fully randomized
                 cmd = "PUT"
                 params = {
                     "LocalPath" : fname,
-                    "RemotePath": filestr,
+                    "RemotePath": "{0}_{1}".format(filestr, self.trans_count_),
                     "SerialNo"  : self.trans_count_
                 }
                 #if random.random() > .5: #and fname in account.file_put_map_:
                 #    cmd = "GET"
-
+                #cmd = "CD"
+                #params = {"LocalPath" : "", "RemotePath" : "/", "SerialNo" : self.trans_count_}
                 # Post the command on the work queue
                 enqueuefunc(account, cmd, params)
 
