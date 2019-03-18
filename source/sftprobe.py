@@ -146,9 +146,8 @@ if __name__ == "__main__":
 
                         logger.info("Found account '{0}' in input file.".format(
                             acct.name_))
-                        #import pdb;pdb.set_trace()
-                        #putpcnt = acct.put_percent_
-                        if vars(args)["putpercent"]:
+
+                        if "putpercent" in vars(args):
                             acct.put_percent_ = args.putpercent
 
                         cnt = acct.file_cnt_

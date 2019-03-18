@@ -27,7 +27,7 @@ fi
 rm -f ~/tmp/*
 
 echo "Running sftp test app"
-$APP flood $SERVER $ACCT -p 50 -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL #> /dev/null 2>&1
+$APP flood $SERVER $ACCT -p 100 -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL #> /dev/null 2>&1
 
 # cleanup
 echo "Back up test logs"

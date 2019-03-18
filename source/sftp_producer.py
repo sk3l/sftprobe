@@ -104,7 +104,6 @@ class sftp_producer:
                 #    * putpcnt = 0  ~> never PUT
                 #    * putpcnt = 100~> always PUT
                 #    * spin the Wheel of Chance
-
                 do_put = True
                 if account.put_percent_ == 0:
                     do_put = False
