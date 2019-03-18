@@ -59,11 +59,14 @@ class sftp_consumer:
                     account.password_,
                     account.key_)      as sftpconn:
 
-                # Collect elapsed time of SFTP ~~command~~ (START timer)
-                start_cmd_tm = stopwatch()
-                sftpconn.exec_sftp_cmd(sftp_client.get_command(cmd), **params)
-                # Collect elapsed time of SFTP ~~command~~ (STOP timer)
-                stop_cmd_tm = stopwatch()
+                # Only execute an SFTP command if one is requested
+                start_cmd_tm = stop_cmd_tm = 0
+                if params:
+                    # Collect elapsed time of SFTP ~~command~~ (START timer)
+                    start_cmd_tm = stopwatch()
+                    sftpconn.exec_sftp_cmd(sftp_client.get_command(cmd), **params)
+                    # Collect elapsed time of SFTP ~~command~~ (STOP timer)
+                    stop_cmd_tm = stopwatch()
 
             # Collect elapsed time of SFTP ~~session~~ (STOP timer)
             stop_sess_tm = stopwatch()

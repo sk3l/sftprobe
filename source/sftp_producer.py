@@ -100,17 +100,28 @@ class sftp_producer:
 
                 self.trans_count_ += 1
 
-                # TO DO : make the command and parameters fully randomized
-                cmd = "PUT"
-                params = {
-                    "LocalPath" : fname,
-                    "RemotePath": "{0}_{1}".format(filestr, self.trans_count_),
-                    "SerialNo"  : self.trans_count_
-                }
-                #if random.random() > .5: #and fname in account.file_put_map_:
-                #    cmd = "GET"
-                #cmd = "CD"
-                #params = {"LocalPath" : "", "RemotePath" : "/", "SerialNo" : self.trans_count_}
+                # Determine if we need to enqueue a PUT command
+                #    * putpcnt = 0  ~> never PUT
+                #    * putpcnt = 100~> always PUT
+                #    * spin the Wheel of Chance
+
+                do_put = True
+                if account.put_percent_ == 0:
+                    do_put = False
+                elif account.put_percent_ < 100:
+                    do_put = (random.random()*100) <= account.put_percent_
+
+                cmd = "NONE"
+                if do_put:
+                    cmd = "PUT"
+                    params = {
+                        "LocalPath" : fname,
+                        "RemotePath": "{0}_{1}".format(filestr, self.trans_count_),
+                        "SerialNo"  : self.trans_count_
+                    }
+                else:
+                    params = {} # Just connect & disconnect
+
                 # Post the command on the work queue
                 enqueuefunc(account, cmd, params)
 

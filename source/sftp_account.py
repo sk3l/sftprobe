@@ -18,6 +18,7 @@ class sftp_account:
             pswd="",            # System user password
             key=None,           # System user private key (paramiko obj)
             path="",            # Path to the account's files
+            putpercent=100,     # % of sessions that PUT
             cnt=1,              # Number of files
             size=1*pow(2,20),   # Min file size
             maxsize=0):         # Max file size
@@ -27,9 +28,10 @@ class sftp_account:
         self.password_      = pswd
         self.key_           = key
         # Parameters influencing data file generation
+        self.put_percent_   = putpercent
         self.file_path_     = path
-        self.file_cnt_      = cnt 
-        self.file_size_     = size 
+        self.file_cnt_      = cnt
+        self.file_size_     = size
         self.file_size_max_ = maxsize
         self.file_list_     = []
 
@@ -37,7 +39,7 @@ class sftp_account:
         # self.file_put_map_  = {}
 
     def create_data_files(self, contents="", cnt=0, size=0, maxsize=0):
-        
+
         fcount = self.file_cnt_
         if cnt > 0:
             fcount = cnt
@@ -49,9 +51,9 @@ class sftp_account:
         fmaxsize = self.file_size_max_
         if maxsize > 0:
             fmaxsize = maxsize
-        
+
         filecnt = len(self.file_list_) + 1
-        datalen = fsize 
+        datalen = fsize
 
         if fmaxsize > 0 and fmaxsize < fsize:
             sftp_account.logger.warn(
@@ -60,7 +62,7 @@ class sftp_account:
 
         fgen = filegen()
         for i in range(0,fcount):
-            
+
             if fmaxsize > 0:
                 random.seed()
                 datalen = random.randrange(fsize, fmaxsize)
@@ -72,7 +74,7 @@ class sftp_account:
             else:
                 fname += ".dat"
                 fgen.gen_rand(fname, datalen)
-            
+
             self.file_list_.append(fname)
 
     def load_data_files(self):
@@ -106,6 +108,9 @@ class sftp_account:
         path = ""
         if "FilePath" in jdict:
             path = jdict["FilePath"]
+        putpercent = 100
+        if "PutPercent" in jdict:
+            putpercent = jdict["PutPercent"]
         fcnt = 1
         if "FileCount" in jdict:
             fcnt = jdict["FileCount"]
@@ -125,6 +130,7 @@ class sftp_account:
             passwd,
             key,
             path,
+            putpercent,
             fcnt,
             fsize,
             fmax)
@@ -138,7 +144,7 @@ class sftp_account:
             return  sftp_account.load_pkey(
                         jsondict["Type"],
                         jsondict["Location"])
-       
+
         if "AccountName" in jsondict:
             return sftp_account.from_json_dict(jsondict)
 
@@ -148,11 +154,3 @@ class sftp_account:
         return None
 
 
-if __name__ == "__main__":
-
-    print("Testing class sftp_account:")
-
-    acct = sftp_account(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-
-    acct.create_data_files("DE0F", 4, 64, 128)
-    acct.create_data_files("", 4, 512, 1024)

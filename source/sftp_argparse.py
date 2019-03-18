@@ -57,6 +57,10 @@ class sftp_argparse():
             help="Max size for random transfer input file e.g. 100Kb, 4Mb.")
 
         self.flood_parser_.add_argument(
+            "-p", type=int, dest="putpercent", metavar="putpercent",
+            help="percentage (int 0-100) of sessions that PUT (0=none, 100=all)")
+
+        self.flood_parser_.add_argument(
             "-r", type=int, dest="rate", metavar="rate",
             help="Max number of transfers to generate per second")
 

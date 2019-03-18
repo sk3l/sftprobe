@@ -127,6 +127,14 @@ if __name__ == "__main__":
                         ap.print_help()
                         exit(16)
 
+                cliPutPercent = 0
+                if vars(args)["putpercent"]:
+                    cliPutPercent = int(args.putpercent)
+                    if cliPutPercent < 0 or cliPutPercent > 100:
+                        logger.critical("Bad --putpercent argument.")
+                        ap.print_help()
+                        exit(16)
+
                 accountList = []
 
                 # Deserialize the account file
@@ -138,6 +146,10 @@ if __name__ == "__main__":
 
                         logger.info("Found account '{0}' in input file.".format(
                             acct.name_))
+                        #import pdb;pdb.set_trace()
+                        #putpcnt = acct.put_percent_
+                        if vars(args)["putpercent"]:
+                            acct.put_percent_ = args.putpercent
 
                         cnt = acct.file_cnt_
                         if vars(args)["count"]:
@@ -209,10 +221,10 @@ if __name__ == "__main__":
                 logger.info("\tResults:")
                 logger.info("\t========")
                 logger.info(
-                    "\tNumber of SFTP operations sourced:    {0}".format(
+                    "\tNumber of SFTP sessions sourced:    {0}".format(
                     producer.trans_count_))
                 logger.info(
-                    "\tNumber of SFTP operations completed:  {0}".format(
+                    "\tNumber of SFTP sessions completed:  {0}".format(
                     s.complete_count_))
                 logger.info(
                     "\tAverage SFTP session time:            {0:.3f}".format(
@@ -222,11 +234,11 @@ if __name__ == "__main__":
                     s.cmd_avg_time_))
                 if s.error_count_ > 0:
                     logger.info(
-                        "\tNumber of SFTP operations failed:     {0}".format(
+                        "\tNumber of SFTP sessions failed:     {0}".format(
                         s.error_count_))
                 if s.cancel_count_ > 0:
                     logger.info(
-                        "\tNumber of SFTP operations canceled:   {0}".format(
+                        "\tNumber of SFTP sessions canceled:   {0}".format(
                         s.cancel_count_))
 
             logger.info("SFTP testing complete.")

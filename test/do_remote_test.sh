@@ -5,9 +5,9 @@ ACCT="$1"
 SERVER="$2:$3"
 #ACCT=./accounts.cisftpdev.json
 FILECNT=100
-WORKERS=10
-RATE=100
-TIME=60
+WORKERS=2
+RATE=2
+TIME=15
 LOGLVL=INFO
 
 # teardown from previous tests
@@ -27,7 +27,7 @@ fi
 rm -f ~/tmp/*
 
 echo "Running sftp test app"
-$APP flood $SERVER $ACCT -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL #> /dev/null 2>&1
+$APP flood $SERVER $ACCT -p 50 -c $FILECNT -t $TIME -w $WORKERS -r $RATE -v $LOGLVL #> /dev/null 2>&1
 
 # cleanup
 echo "Back up test logs"
